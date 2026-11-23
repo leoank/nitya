@@ -61,7 +61,7 @@ flowchart LR
   hub --> snode --> agent
   agent -- MCP, later --> node
   outside -- https --> worker[Cloudflare Worker + D1: poll data only]
-  server -- signed pull and push, proposed ADR-0008 --> worker
+  server -- signed pull and push, ADR-0008 --> worker
 ```
 
 - **nitya server** (ADR-0001): its own tsnet identity; the store, channel drivers and
@@ -93,16 +93,13 @@ Each phase is a `PHS` page linked from the project page's *Progress*.
 - Phase 2, calendar sync and tasks: Google, Graph and CalDAV channels, two-way; tasks.
 - Phase 3, email: read, search, triage, drafts.
 - Phase 4, meeting polls: invitee tokens, availability from the synced calendars, booking
-  written back.
+  written back; respondents reach a Cloudflare Worker holding only poll data (ADR-0008).
 - Phase 5, agents: spawned saarthi sessions with grants and plans approved from the phone;
   then MCP through the node.
 - Phase 6, the Nitya workspace in saarthi's app, built alongside phases 2 to 5.
 - Node notes and files sync, scope still open.
 
 ## Open questions
-- How do outside respondents reach a poll? Proposed in ADR-0008: a Cloudflare Worker with
-  D1 holding only poll data, which nitya pushes to and pulls from; Funnel, a VPS and email
-  replies are the alternatives. Accepted or replaced before phase 4.
 - What exactly does the node's notes and files sync cover, and is it built or borrowed
   (Syncthing, git)?
 - Do the providers' sync APIs round-trip what nitya stores? [[EXP-20261123-bhfzfs]].

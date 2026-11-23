@@ -1,6 +1,6 @@
 # ADR-0008: Poll respondents reach a Cloudflare Worker that holds only poll data, never nitya
 
-Status: proposed
+Status: accepted
 Date: 2026-11-23
 
 ## Context
@@ -40,4 +40,4 @@ Alternatives considered:
 - Free-tier limits are far above one person's polls.
 - Invitations still have to be sent by mail from the owner's account, an explicit action by
   the owner, not an agent (ADR-0004).
-- To be accepted by the owner before phase 4 starts.
+- Accepted by the owner on 2026-11-23.

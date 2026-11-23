@@ -50,10 +50,6 @@ items with the rest.
 - [ ] [[PHS-20261123-bhepkn]] Node: notes and files sync
 
 ## Open questions
-- How do outside respondents reach a meeting poll? Left open in the interview; on
-  2026-11-23 the owner asked about Cloudflare Workers, now proposed as ADR-0008 (a Worker
-  and D1 holding only poll data, nitya pushing and pulling over signed outbound requests).
-  To be accepted or replaced before [[PHS-20261123-bhensm]].
 - What does the node's notes and files sync cover, and is it built or borrowed
   ([[PHS-20261123-bhepkn]])?
 - Automatic agent rules that run without approval: deferred; the baseline is approval for
@@ -116,3 +112,7 @@ Settled in the interview of 2026-11-22/23 ([[AGS-20261123-bhdnxc]]); each record
   decisions that name their policies for the audit log.
 - ADR-0007, a signed, hash-chained audit log: access must be auditable, including by
   devices that do not trust the server's database.
+- ADR-0008, poll respondents reach a Cloudflare Worker with D1 holding only poll data,
+  which nitya pushes to and pulls from (accepted 2026-11-23): the public side of polls
+  without exposing ghost001 or running a machine to patch; Cloudflare sees a poll's
+  invitees and choices while it is open.
