@@ -8,4 +8,4 @@ bibliography = "notes/references/library.bib"
 
 [repos]             # namespaces this repo links to, e.g. rc2s2 = "github:leoank/rc2s2"
 yajna = { url = "github:leoank/yajna", path = "../../../../chaos/yajna/main" }
-saarthi = { url = "github:leoank/saarthi", path = "../../../../hub/leoank/saarthi" }
+saarthi = { url = "github:leoank/saarthi", path = "../../saarthi/main" }
