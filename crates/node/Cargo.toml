@@ -1,0 +1,9 @@
+[package]
+name = "nitya-node"
+description = "The nitya node on each machine: agent context, notifications, file sync (ADR-0001)"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "nitya-node"
+path = "src/main.rs"

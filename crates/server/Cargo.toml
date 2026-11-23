@@ -1,0 +1,9 @@
+[package]
+name = "nitya-server"
+description = "The nitya server: store, sync, policy, audit (ADR-0001)"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "nitya-server"
+path = "src/main.rs"
