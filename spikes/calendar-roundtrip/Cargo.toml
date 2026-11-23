@@ -1,0 +1,17 @@
+[package]
+name = "calendar-roundtrip"
+description = "Spike for EXP-20261123-bhfzfs: do calendar events round-trip through providers and iCalendar crates without loss"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# A throwaway spike, outside nitya's workspace.
+[workspace]
+
+[dependencies]
+calcard = "=0.3.14"
+icalendar = { version = "=0.17.17", features = ["parser"] }
+rrule = "=0.14.0"
+chrono = "0.4"
+chrono-tz = "0.10"
+ureq = "2"

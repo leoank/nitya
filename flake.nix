@@ -14,7 +14,7 @@
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [ "aarch64-darwin" "x86_64-darwin" "x86_64-linux" "aarch64-linux" ];
 
-      perSystem = { pkgs, system, lib, ... }:
+      perSystem = { config, pkgs, system, lib, ... }:
         let
           yajna = inputs.yajna.packages.${system}.yajna;
 
@@ -52,6 +52,13 @@
               yajna
             ];
             RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}";
+          };
+
+          # The calendar round-trip spike (EXP-20261123-bhfzfs): the default shell plus
+          # Radicale as a local CalDAV server.
+          devShells.calendar-spike = pkgs.mkShell {
+            inputsFrom = [ config.devShells.default ];
+            packages = [ pkgs.radicale pkgs.curl ];
           };
 
           # The cargo workspace, built and tested.
