@@ -56,6 +56,11 @@
             nitya-server = bin "nitya-server";
             nitya-node = bin "nitya-node";
             default = nitya-server;
+            # One-time sign-in to Google or Microsoft for a refresh token (ADR-0009);
+            # `nix run .#nitya-consent -- --help`.
+            nitya-consent = pkgs.writers.writePython3Bin "nitya-consent" {
+              flakeIgnore = [ "E501" ];
+            } (builtins.readFile ./scripts/nitya-consent.py);
           };
 
           devShells.default = pkgs.mkShell {
@@ -84,6 +89,14 @@
             inherit src;
             cargoLock.lockFile = ./Cargo.lock;
           };
+
+          # nitya-consent against a fake provider on loopback, offline.
+          checks.nitya-consent = pkgs.runCommand "nitya-consent-test" {
+            nativeBuildInputs = [ pkgs.python3 ];
+          } ''
+            python3 ${./scripts/test-nitya-consent.py} ${config.packages.nitya-consent}/bin/nitya-consent
+            touch $out
+          '';
 
           # The notebook passes yajna validate.
           checks.notebook = pkgs.runCommand "nitya-notebook" {
