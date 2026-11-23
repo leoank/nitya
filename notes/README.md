@@ -116,3 +116,7 @@ Settled in the interview of 2026-11-22/23 ([[AGS-20261123-bhdnxc]]); each record
   which nitya pushes to and pulls from (accepted 2026-11-23): the public side of polls
   without exposing ghost001 or running a machine to patch; Cloudflare sees a poll's
   invitees and choices while it is open.
+- ADR-0009, provider OAuth apps are the `nitya-oauth` terranix stack in this repo, through
+  neusis's stack runner, and their secrets agenix files in neusis (the owner's choice,
+  2026-11-23): Microsoft's app is declared whole; Google's project and APIs are declared,
+  its consent screen and Desktop client stay manual since Google has no API for them.

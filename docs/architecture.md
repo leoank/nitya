@@ -82,6 +82,8 @@ flowchart LR
   an iCalendar crate chosen by [[EXP-20261123-bhfzfs]].
 - Nix flake for the dev shell, packages, NixOS module (server) and home-manager module
   (node), with module tests, as saarthi and sandhi do.
+- Provider OAuth apps as the `nitya-oauth` terranix stack (`nix/infra/`), on neusis's
+  stack runner; secrets as agenix files in neusis (ADR-0009).
 
 ## Phases
 Each phase is a `PHS` page linked from the project page's *Progress*.

@@ -40,6 +40,9 @@ If 1 fails, nitya needs a verified Google app or IMAP with app passwords for Gma
 1. Create a Google Cloud project for the personal account and an Entra app registration;
    scopes: Calendar read/write, Gmail read and compose (`gmail.modify` only if needed),
    offline access.
+   Since 2026-11-23 both come from the `nitya-oauth` terranix stack (ADR-0009): the Entra
+   app entirely, the Google project and APIs, with the consent screen and Desktop client
+   made by hand from its `google_manual_steps` output.
 2. Authorise on the laptop, export the tokens, store them as agenix secrets for ghost001
    (never in this repo), as msgvault's `export-token` does (@msgvault).
 3. A small scripted poller on ghost001 that refreshes and lists one calendar and one

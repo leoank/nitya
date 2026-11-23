@@ -8,11 +8,27 @@
     # The yajna CLI for the notebook under notes/ (github:leoank/yajna).
     yajna.url = "github:leoank/yajna";
     yajna.inputs.nixpkgs.follows = "nixpkgs";
+    # The owner's fleet config: its terranix stack runner (OpenTofu, encrypted state,
+    # tf.env) and terranix modules, for nix/infra/ (github:leoank/neusis).
+    neusis.url = "github:leoank/neusis";
+    terranix.url = "github:terranix/terranix";
+    terranix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [ "aarch64-darwin" "x86_64-darwin" "x86_64-linux" "aarch64-linux" ];
+
+      imports = [
+        # neusis's terranix bundle declares its input through flake-file, which only
+        # neusis's own (generated) flake reads; nitya declares terranix above, so the
+        # declaration is accepted here and ignored.
+        ({ lib, ... }: {
+          options.flake-file = lib.mkOption { type = lib.types.lazyAttrsOf lib.types.raw; default = { }; };
+        })
+        inputs.neusis.flakeModules.terranix
+        ./nix/infra/nitya-oauth.nix
+      ];
 
       perSystem = { config, pkgs, system, lib, ... }:
         let
