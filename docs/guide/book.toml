@@ -1,0 +1,34 @@
+# The nitya user guide, published to GitHub Pages. Build with `nix build .#docs`; the
+# command-line reference and the design section are added by build.py.
+[book]
+title = "nitya"
+description = "One self-hosted server for the day-to-day of life: calendar, email and tasks in one place, with agents acting only through plans you approve."
+authors = ["Ankur Kumar"]
+language = "en"
+src = "src"
+
+[build]
+# Every page comes from SUMMARY.md; a typo there should fail the build, not
+# silently create an empty page.
+create-missing = false
+
+# The theme is the yajna guide's (theme/), so the sites look alike.
+[output.html]
+site-url = "/nitya/"
+git-repository-url = "https://github.com/leoank/nitya"
+git-repository-icon = "fab-github"
+default-theme = "light"
+preferred-dark-theme = "navy"
+additional-css = ["theme/nitya.css"]
+additional-js = ["theme/sidebar.js"]
+no-section-label = true
+# Keep `--flag` from turning into an en dash in prose.
+smart-punctuation = false
+
+[output.html.fold]
+# Sections stay folded until you navigate into them (or click the chevron).
+enable = true
+level = 0
+
+[output.html.search]
+limit-results = 40
