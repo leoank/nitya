@@ -27,6 +27,6 @@ done ones. The project page's *Progress* lists this phase on one line.
 - [ ] 4. OAuth refresh tokens on a headless server for 30 days ([[EXP-20261123-bhfz49]]), started early since it takes a month
 - [ ] 5. nitya to saarthi: spawn, plan, approval from the phone ([[EXP-20261123-bhfz7e]])
 - [x] 6. The flake: dev shell (Rust, yajna), Cargo workspace with `nitya-server` and `nitya-node` stub crates, packages for both, `nix flake check` building and testing the workspace and validating the notebook; protoc left until the API is chosen
-- [ ] 7. Decide how poll respondents reach nitya (open question on [[PRJ-0001]]) before phase 4
+- [ ] 7. Decide how poll respondents reach nitya before phase 4: ADR-0008 proposes a Cloudflare Worker
 
 ## Notes

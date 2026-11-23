@@ -60,7 +60,8 @@ flowchart LR
   server -- spawn with a nitya grant --> hub
   hub --> snode --> agent
   agent -- MCP, later --> node
-  outside -. open: Funnel, edge or email .-> server
+  outside -- https --> worker[Cloudflare Worker + D1: poll data only]
+  server -- signed pull and push, proposed ADR-0008 --> worker
 ```
 
 - **nitya server** (ADR-0001): its own tsnet identity; the store, channel drivers and
@@ -99,8 +100,9 @@ Each phase is a `PHS` page linked from the project page's *Progress*.
 - Node notes and files sync, scope still open.
 
 ## Open questions
-- How do outside respondents reach a poll: Tailscale Funnel for the poll routes only, a
-  small public edge holding only poll data, or email replies? Decided before phase 4.
+- How do outside respondents reach a poll? Proposed in ADR-0008: a Cloudflare Worker with
+  D1 holding only poll data, which nitya pushes to and pulls from; Funnel, a VPS and email
+  replies are the alternatives. Accepted or replaced before phase 4.
 - What exactly does the node's notes and files sync cover, and is it built or borrowed
   (Syncthing, git)?
 - Do the providers' sync APIs round-trip what nitya stores? [[EXP-20261123-bhfzfs]].

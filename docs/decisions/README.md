@@ -12,6 +12,7 @@ and never renumbered. A decision that changes an earlier one supersedes it; both
 | [ADR-0005](ADR-0005-device-keys-a-per-user-key-hierarchy-and-a-consented-sync-delegate.md) | Device keys with short-lived certificates, a per-user key hierarchy, and a consented sync delegate; no MLS | accepted |
 | [ADR-0006](ADR-0006-cedar-is-the-policy-engine.md) | Cedar is the policy engine | accepted |
 | [ADR-0007](ADR-0007-a-signed-hash-chained-audit-log.md) | A signed, hash-chained audit log of every read and write | accepted |
+| [ADR-0008](ADR-0008-poll-respondents-reach-a-cloudflare-worker-not-nitya.md) | Poll respondents reach a Cloudflare Worker that holds only poll data, never nitya | proposed |
 
 Each record:
 

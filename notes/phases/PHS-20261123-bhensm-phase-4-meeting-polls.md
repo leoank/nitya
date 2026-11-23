@@ -21,7 +21,7 @@ nothing else of nitya reachable from outside.
 One item per piece of work, ticked when it lands; add items as the plan grows and keep the
 done ones. The project page's *Progress* lists this phase on one line.
 
-- [ ] 1. Decide the public path for respondents (Funnel, public edge, or email) and record it as an ADR
+- [ ] 1. Accept or replace ADR-0008 (proposed: a Cloudflare Worker with D1 holding only poll data) for the respondents' public path
 - [ ] 2. Polls with capability tokens per invitee and per response, rotation and revocation (@rallly)
 - [ ] 3. Slots from free/busy; finalising books the event and sends invitations once (@rfc5546-itip)
 

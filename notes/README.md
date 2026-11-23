@@ -50,9 +50,10 @@ items with the rest.
 - [ ] [[PHS-20261123-bhepkn]] Node: notes and files sync
 
 ## Open questions
-- How do outside respondents reach a meeting poll: Tailscale Funnel for the poll routes
-  only, a small public edge holding only poll data, or email replies? Left open on
-  purpose (2026-11-23); decided before [[PHS-20261123-bhensm]].
+- How do outside respondents reach a meeting poll? Left open in the interview; on
+  2026-11-23 the owner asked about Cloudflare Workers, now proposed as ADR-0008 (a Worker
+  and D1 holding only poll data, nitya pushing and pulling over signed outbound requests).
+  To be accepted or replaced before [[PHS-20261123-bhensm]].
 - What does the node's notes and files sync cover, and is it built or borrowed
   ([[PHS-20261123-bhepkn]])?
 - Automatic agent rules that run without approval: deferred; the baseline is approval for
