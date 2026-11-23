@@ -75,7 +75,8 @@
           } ''
             cd ${lib.fileset.toSource {
               root = ./.;
-              fileset = lib.fileset.unions [ ./yajna.toml ./notes ./docs ];
+              # Run pages name their scripts under spikes/; validate checks they exist.
+              fileset = lib.fileset.unions [ ./yajna.toml ./notes ./docs ./spikes ];
             }}
             yajna --root . validate
             touch $out
