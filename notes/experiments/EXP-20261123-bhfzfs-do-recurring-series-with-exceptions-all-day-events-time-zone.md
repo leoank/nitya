@@ -4,7 +4,7 @@ type: experiment
 schema_version: 1
 title: Do recurring series with exceptions, all-day events, time zones and attendees round-trip between Google Calendar, Microsoft Graph, CalDAV and a store of raw iCalendar with provider ids, without loss?
 project: PRJ-0001
-status: planned           # planned | active | paused | concluded | abandoned
+status: active            # planned | active | paused | concluded | abandoned
 outcome: null             # null | positive | negative | inconclusive | infra
 influenced_by: []
 created: 2026-11-23
@@ -68,6 +68,12 @@ for its channel and ADR-0003 is narrowed.
 ## Runs
 One line per run after its link, what was tried and what it showed; `yajna validate`
 rejects a bare link here. Metric runs also land in results.tsv.
+- [[RUN-20261123-f5xbpv]] crates: calcard and icalendar's Calendar keep the meaning of all 24
+  cases, but icalendar writes invalid, random UIDs into time zones and alarms and its
+  low-level parser drops TEXT escapes; calcard only reorders RRULE parts
+- [[RUN-20261123-f5xbz0]] local Radicale: all 24 keep meaning and every property on import
+  and write-back, one resource per UID; a two-UID resource is refused; bytes are
+  re-serialized, so change detection must use ETags
 
 ## Conclusion
 Written once, by a human, when status becomes `concluded`.

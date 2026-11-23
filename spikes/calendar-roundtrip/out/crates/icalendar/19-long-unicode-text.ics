@@ -1,0 +1,41 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//nitya//EXP-20261123-bhfzfs corpus//EN
+BEGIN:VTIMEZONE
+DTSTAMP:20261123T134906Z
+TZID:Europe/London
+UID:bf297237-35dc-4258-9fed-9bec66f5b143
+BEGIN:DAYLIGHT
+DTSTAMP:20261123T134906Z
+DTSTART:19700329T010000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU
+TZNAME:BST
+TZOFFSETFROM:+0000
+TZOFFSETTO:+0100
+UID:96f136e5-960a-4c57-8fb4-d7aea1cecaa3
+END:DAYLIGHT
+BEGIN:STANDARD
+DTSTAMP:20261123T134906Z
+DTSTART:19701025T020000
+RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
+TZNAME:GMT
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0000
+UID:042a1fe4-9ec1-4f2c-bc33-e14e9586863d
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+DESCRIPTION:A long description that has to be folded across several lines. 
+ A long description that has to be folded across several lines. A long desc
+ ription that has to be folded across several lines. A long description tha
+ t has to be folded across several lines. \nSecond paragraph after an escap
+ ed newline\, with नित्य and emoji 📅.
+DTEND;TZID=Europe/London:20270708T110000
+DTSTAMP:20261123T120000Z
+DTSTART;TZID=Europe/London:20270708T100000
+LOCATION:Room 1\, Building 2\; Floor 3
+SUMMARY:Ünïcödé\, commas\, semicolons\; and a backslash \\ — नि
+ त्य
+UID:c19@nitya-corpus
+END:VEVENT
+END:VCALENDAR

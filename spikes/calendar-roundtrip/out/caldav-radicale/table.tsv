@@ -1,0 +1,51 @@
+case	leg	meaning	instances_missing	instances_extra	props_lost	props_added
+01-timed-london	import	same	0	0	-	-
+01-timed-london	write-back	same	0	0	-	-
+02-all-day	import	same	0	0	-	-
+02-all-day	write-back	same	0	0	-	-
+03-multi-day-all-day	import	same	0	0	-	-
+03-multi-day-all-day	write-back	same	0	0	-	-
+04-floating	import	same	0	0	-	-
+04-floating	write-back	same	0	0	-	-
+05-utc	import	same	0	0	-	-
+05-utc	write-back	same	0	0	-	-
+06-weekly-count	import	same	0	0	-	-
+06-weekly-count	write-back	same	0	0	-	-
+07-weekly-exdate	import	same	0	0	-	-
+07-weekly-exdate	write-back	same	0	0	-	-
+08-daily-moved-instance	import	same	0	0	-	-
+08-daily-moved-instance	write-back	same	0	0	-	-
+09-cancelled-instance	import	same	0	0	-	-
+09-cancelled-instance	write-back	same	0	0	-	-
+10a-thisandfuture-range	import	same	0	0	-	-
+10a-thisandfuture-range	write-back	same	0	0	-	-
+10b-split-series	import(one resource)	error	0	0	-	-
+10b-split-series	import(split 2)	same	0	0	-	-
+10b-split-series	write-back(split 2)	same	0	0	-	-
+11-weekly-across-dst	import	same	0	0	-	-
+11-weekly-across-dst	write-back	same	0	0	-	-
+12-other-zone-new-york	import	same	0	0	-	-
+12-other-zone-new-york	write-back	same	0	0	-	-
+13-half-hour-zone	import	same	0	0	-	-
+13-half-hour-zone	write-back	same	0	0	-	-
+14-monthly-last-friday	import	same	0	0	-	-
+14-monthly-last-friday	write-back	same	0	0	-	-
+15-monthly-bysetpos	import	same	0	0	-	-
+15-monthly-bysetpos	write-back	same	0	0	-	-
+16-rdate	import	same	0	0	-	-
+16-rdate	write-back	same	0	0	-	-
+17-yearly-all-day	import	same	0	0	-	-
+17-yearly-all-day	write-back	same	0	0	-	-
+18-attendees	import	same	0	0	-	-
+18-attendees	write-back	same	0	0	-	-
+19-long-unicode-text	import	same	0	0	-	-
+19-long-unicode-text	write-back	same	0	0	-	-
+20-attach-url-x-props	import	same	0	0	-	-
+20-attach-url-x-props	write-back	same	0	0	-	-
+21-alarms	import	same	0	0	-	-
+21-alarms	write-back	same	0	0	-	-
+22-all-day-series-timed-override	import	same	0	0	-	-
+22-all-day-series-timed-override	write-back	same	0	0	-	-
+23-private-busy-status	import	same	0	0	-	-
+23-private-busy-status	write-back	same	0	0	-	-
+===RESULT=== {"cases": 24, "import_same": 24, "writeback_same": 24, "multi_uid_refused_as_one": 1}

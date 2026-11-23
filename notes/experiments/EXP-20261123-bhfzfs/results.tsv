@@ -1,0 +1,3 @@
+run	finished	cases	icalendar_same	icalendar-parser_same	calcard_same	import_same	writeback_same	multi_uid_refused_as_one
+RUN-20261123-f5xbpv	2026-11-23T13:49+00:00	24	24	23	24			
+RUN-20261123-f5xbz0	2026-11-23T13:49+00:00	24				24	24	1

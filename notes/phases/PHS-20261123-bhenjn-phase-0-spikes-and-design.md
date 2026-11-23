@@ -4,8 +4,8 @@ type: phase
 schema_version: 1
 title: "Phase 0: spikes and design"
 project: PRJ-0001
-status: planned           # planned | active | done | abandoned
-since: null               # the commit it started at: yajna phase start
+status: active
+since: 9dec18ff7c470ef1db1e6dacabe0f5803f30ddd9
 until: null               # the commit it finished at: yajna phase done
 created: 2026-11-23
 author: agent:claude

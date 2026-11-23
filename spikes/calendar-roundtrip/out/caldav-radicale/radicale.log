@@ -1,0 +1,406 @@
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Logging level set to: 'INFO'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Logging of backtrace is disabled in this loglevel
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Logging level set to: 'INFO'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Loaded default config
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Skipped missing/unreadable config file '/etc/radicale/config'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Skipped missing/unreadable config file '/Users/ank/.config/radicale/config'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Loaded command line arguments
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Starting Radicale with PYTHONPATH='/nix/store/2vkvrky0bdnp2a3w83z1x56yz9zyzp1m-radicale-3.9.2/lib/python3.14/site-packages:/nix/store/hc12xny7n8hz7mfgaby3xssa594k7dyv-python3.14-defusedxml-0.8.0rc2/lib/python3.14/site-packages:/nix/store/3j0hvszcqcb2vwm5dz0xxfb06cx49k86-python3-3.14.10/lib/python3.14/site-packages:/nix/store/gs6gw6fqxkbx0j1xmzcmrm9llyrzgjm1-python3.14-libpass-1.9.4/lib/python3.14/site-packages:/nix/store/05izhj4gnds3ppw4ms3xck68sjzv214y-python3.14-vobject-0.9.9/lib/python3.14/site-packages:/nix/store/pi20k59xp6acimlhqr9427ms4v956fn6-python3.14-python-dateutil-2.9.0.post0/lib/python3.14/site-packages:/nix/store/16whvd982c9dq6sdr0z7wmcd6i4a6j2n-python3.14-six-1.17.0/lib/python3.14/site-packages:/nix/store/bsl89baa29rgxdkkjv0v054492kjiy71-python3.14-pytz-2026.5/lib/python3.14/site-packages:/nix/store/8a4nzcz0q26b07l0573dnv70sbdnppq1-python3.14-pika-1.3.2/lib/python3.14/site-packages:/nix/store/spmlvli0dvyanm876jb1pxmb7wki6p10-python3.14-gevent-26.8.0/lib/python3.14/site-packages:/nix/store/s38z78v7rlfq09yn4w1p7hj42rglr39w-python3.14-importlib-metadata-9.0.0/lib/python3.14/site-packages:/nix/store/xrkkia3nshr2pfaygrj2vp1n74ys8s74-python3.14-toml-0.10.2/lib/python3.14/site-packages:/nix/store/svvhc6wb5ys8vsf43kansih1jkxra8xm-python3.14-zipp-4.1.0/lib/python3.14/site-packages:/nix/store/n9x2dgp8r5qj3d9wmq9b6ai00vcxf8bp-python3.14-zope-event-6.2/lib/python3.14/site-packages:/nix/store/s7r1qb73ajpmc2fnh0qxvmqfqvan66sy-python3.14-zope-interface-8.2/lib/python3.14/site-packages:/nix/store/s6518n1586m0qxmh5jj9ng31g8g1451y-python3.14-greenlet-3.5.5/lib/python3.14/site-packages:/nix/store/fwfni1fizx1smcf8jr5yxajy4ykh2aqj-python3.14-tornado-6.5.8/lib/python3.14/site-packages:/nix/store/ql6ycb8idd5lxpja1gdpwfql2yqx73c0-python3.14-twisted-26.4.0/lib/python3.14/site-packages:/nix/store/h5zhvm8b65a5rgf08h545pkqsgvnladj-python3.14-attrs-26.1.0/lib/python3.14/site-packages:/nix/store/9dr1m3g5l35xpw19q7cm3hhw8bix5acy-python3.14-automat-25.4.16/lib/python3.14/site-packages:/nix/store/2rg02pi69jh0bj8fl506hj6kn4vr39a0-python3.14-constantly-23.10.4/lib/python3.14/site-packages:/nix/store/4dwjxg231mmg8m0l5y95kpbgplzif37y-python3.14-hyperlink-21.0.0/lib/python3.14/site-packages:/nix/store/jkasfamsa840xwvph6habfy0hr9yffac-python3.14-idna-3.20/lib/python3.14/site-packages:/nix/store/vg309z030paiyjwvabxkcllzzff0ack6-python3.14-incremental-24.11.0/lib/python3.14/site-packages:/nix/store/isaqnsd4ngfnyiy9lmjzj3ca53nf0ar9-python3.14-packaging-26.3/lib/python3.14/site-packages:/nix/store/9f5invlkccxdbh4ckgzz2hkb3va73f8p-python3.14-typing-extensions-4.16.0/lib/python3.14/site-packages:/nix/store/fss18i7kwsklbq4xx78nww31w0f39xd9-python3.14-requests-2.34.2/lib/python3.14/site-packages:/nix/store/19hk73zwhr4y6h87bpj9azb8br5sxzcs-python3.14-certifi-2026.10.23/lib/python3.14/site-packages:/nix/store/n7x02ympns4x7i5xzfkvqbdarq07v0ca-python3.14-charset-normalizer-3.5.1/lib/python3.14/site-packages:/nix/store/sjlvad1x4lhs62r9hfb6q2yykpn9sa99-python3.14-urllib3-2.7.0/lib/python3.14/site-packages:/nix/store/62jwz3w62vn06vl9hq72k23hlzzy36rg-python3.14-ldap3-2.9.1/lib/python3.14/site-packages:/nix/store/20ng4d8n7agcilq7nwr8bkkib7bp83cc-python3.14-pyasn1-0.6.4/lib/python3.14/site-packages:/nix/store/f133f7yapac9id9yd5ix2m01mvj8zsbz-python3.14-python-pam-2.0.2/lib/python3.14/site-packages:/nix/store/ldcl15bfwrv4cj7z176cz0cr0vdfji2i-python3.14-argon2-cffi-25.1.0/lib/python3.14/site-packages:/nix/store/di2l1y08mnxzxlrqav39snrcrrw2v8in-python3.14-argon2-cffi-bindings-25.1.0/lib/python3.14/site-packages:/nix/store/ky8wlnpg0wfzvxkwinbqkx7crxrvz8ai-python3.14-cffi-2.1.1/lib/python3.14/site-packages:/nix/store/hjmr7fyplqb184bg5dspy4wcb2sg99dp-python3.14-pycparser-3.00/lib/python3.14/site-packages:/nix/store/wvx43q91gssgyy2hg7l3cpxiw2cfvn42-python3.14-bcrypt-5.0.0/lib/python3.14/site-packages' (python=3.14.10 radicale=3.9.2 vobject=0.9.9 passlib=1.9.4 defusedxml=0.8.0rc2 hypercorn=n/a cheroot=n/a requests=2.34.2 bcrypt=5.0.0 argon2-cffi=25.1.0 pika=1.3.2 ldap=n/a ldap3=2.9.1 pam=2.0.2) as user=ank(501) groups=staff(20),everyone(12),localaccounts(61),_appserverusr(79),admin(80),_appserveradm(81),com.apple.sharepoint.group.1(701),_appstore(33),_lpadmin(98),_lpoperator(100),_developer(204),_analyticsusers(250),com.apple.access_ftp(395),com.apple.access_screensharing(398),com.apple.access_ssh(399),com.apple.access_remote_ae(400) on macOS-26.5.2-arm64-arm-64bit-Mach-O
+[2026-11-23 13:49:09 +0000] [59088] [WARNING] No user authentication is selected: '[auth] type=none' (INSECURE)
+[2026-11-23 13:49:09 +0000] [59088] [INFO] auth type is 'radicale.auth.none'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] auth.strip_domain: False
+[2026-11-23 13:49:09 +0000] [59088] [INFO] auth.lc_username: False
+[2026-11-23 13:49:09 +0000] [59088] [INFO] auth.uc_username: False
+[2026-11-23 13:49:09 +0000] [59088] [INFO] auth.urldecode_username: False
+[2026-11-23 13:49:09 +0000] [59088] [INFO] auth.delay: 1.000000 seconds
+[2026-11-23 13:49:09 +0000] [59088] [INFO] auth.cache_logins: False
+[2026-11-23 13:49:09 +0000] [59088] [INFO] No user groups lookup method is selected
+[2026-11-23 13:49:09 +0000] [59088] [INFO] group type is 'radicale.group.none'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] storage type is 'radicale.storage.multifilesystem'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage folder umask (from system): '0022'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage location: '/tmp/nix-shell.Y5DxgA/tmp.nAAeCjoNoM'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage location permissions: path='/tmp/nix-shell.Y5DxgA/tmp.nAAeCjoNoM' owner=ank(501) group=wheel(0) mode=40700
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage location subfolder: '/tmp/nix-shell.Y5DxgA/tmp.nAAeCjoNoM/collection-root'
+[2026-11-23 13:49:09 +0000] [59088] [WARNING] Storage location subfolder: '/tmp/nix-shell.Y5DxgA/tmp.nAAeCjoNoM/collection-root' does not exist, creating now
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage location subfolder permissions: path='/tmp/nix-shell.Y5DxgA/tmp.nAAeCjoNoM/collection-root' owner=ank(501) group=wheel(0) mode=40755
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage location subfolder softlink support: True
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage location subfolder is collision free: False (case-sensitive=False no-short-filename=True)
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage location subfolder supports unicode: True
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage location subfolder supports trailing whitespace: True
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage location subfolder supports problematic chars: True
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage cache subfolder usage for 'item': False
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage cache subfolder usage for 'history': False
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage cache subfolder usage for 'sync-token': False
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage cache use mtime and size for 'item': False
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage item mtime resolution test result: 1 ns
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage cache using mtime and size for 'item' may be an option in case of performance issues
+[2026-11-23 13:49:09 +0000] [59088] [WARNING] Group collections folder disabled, file system is not case-sensitive: 'GROUPS'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] rights type is 'radicale.rights.owner_only'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] web type is 'radicale.web.internal'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] sharing type is 'radicale.sharing.none'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] rights type is 'radicale.rights.owner_only'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] storage type is 'radicale.storage.multifilesystem'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage folder umask (from system): '0022'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage location: '/tmp/nix-shell.Y5DxgA/tmp.nAAeCjoNoM'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage location permissions: path='/tmp/nix-shell.Y5DxgA/tmp.nAAeCjoNoM' owner=ank(501) group=wheel(0) mode=40700
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage location subfolder: '/tmp/nix-shell.Y5DxgA/tmp.nAAeCjoNoM/collection-root'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage location subfolder permissions: path='/tmp/nix-shell.Y5DxgA/tmp.nAAeCjoNoM/collection-root' owner=ank(501) group=wheel(0) mode=40755
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage location subfolder softlink support: True
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage location subfolder is collision free: False (case-sensitive=False no-short-filename=True)
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage location subfolder supports unicode: True
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage location subfolder supports trailing whitespace: True
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage location subfolder supports problematic chars: True
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage cache subfolder usage for 'item': False
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage cache subfolder usage for 'history': False
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage cache subfolder usage for 'sync-token': False
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage cache use mtime and size for 'item': False
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage item mtime resolution test result: 1 ns
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Storage cache using mtime and size for 'item' may be an option in case of performance issues
+[2026-11-23 13:49:09 +0000] [59088] [WARNING] Group collections folder disabled, file system is not case-sensitive: 'GROUPS'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] No user groups lookup method is selected
+[2026-11-23 13:49:09 +0000] [59088] [INFO] group type is 'radicale.group.none'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] sharing.collection_by_map  : False
+[2026-11-23 13:49:09 +0000] [59088] [INFO] sharing.collection_by_token: False
+[2026-11-23 13:49:09 +0000] [59088] [INFO] sharing.permit_create_token: False
+[2026-11-23 13:49:09 +0000] [59088] [INFO] sharing.permit_create_map  : false
+[2026-11-23 13:49:09 +0000] [59088] [INFO] sharing.default_permissions_create_token: 'rp'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] sharing.default_permissions_create_map  : 'r'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] sharing.permit_properties_overlay: False
+[2026-11-23 13:49:09 +0000] [59088] [INFO] sharing.enforce_properties_overlay: True
+[2026-11-23 13:49:09 +0000] [59088] [INFO] sharing.conversion_bday_summary_template: '[{n:f} {n:g}|{fn}|{nickname}] ({year}) (BDAY)'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] sharing.conversion_bday_description_template: 'BDAY={year}-{month}-{day}'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] sharing.conversion_bday_alarm_trigger_template: ''
+[2026-11-23 13:49:09 +0000] [59088] [INFO] sharing.conversion_bday_categories: 'Birthday'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] sharing.conversion_bday_age_max: 99
+[2026-11-23 13:49:09 +0000] [59088] [INFO] sharing.database_type: none
+[2026-11-23 13:49:09 +0000] [59088] [INFO] sharing disabled as no feature is enabled
+[2026-11-23 13:49:09 +0000] [59088] [INFO] hook type is 'radicale.hook.none'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] delay_on_error set to: 1.000 seconds
+[2026-11-23 13:49:09 +0000] [59088] [INFO] max_content_length set to: 100000000 bytes (95.4 Mbytes)
+[2026-11-23 13:49:09 +0000] [59088] [INFO] max_resource_size set to: 10000000 bytes (9.5 Mbytes)
+[2026-11-23 13:49:09 +0000] [59088] [INFO] max_vevent_rrule_occurrence set to: 10000
+[2026-11-23 13:49:09 +0000] [59088] [INFO] log bad put request content: False
+[2026-11-23 13:49:09 +0000] [59088] [NOTICE] log request  header  on notice condition: {}
+[2026-11-23 13:49:09 +0000] [59088] [NOTICE] log request  content on notice condition: {}
+[2026-11-23 13:49:09 +0000] [59088] [NOTICE] log response header  on notice condition: {}
+[2026-11-23 13:49:09 +0000] [59088] [NOTICE] log response content on notice condition: {}
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Default script name to strip from URI if called by reverse proxy is taken from HTTP_X_SCRIPT_NAME or SCRIPT_NAME
+[2026-11-23 13:49:09 +0000] [59088] [INFO] permit delete of collection: True
+[2026-11-23 13:49:09 +0000] [59088] [INFO] permit overwrite of collection: True
+[2026-11-23 13:49:09 +0000] [59088] [INFO] strict preconditions check: False
+[2026-11-23 13:49:09 +0000] [59088] [INFO] validate user value: 'minimal'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] validate path value: 'minimal'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] profiling: 'none'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Listening on '127.0.0.1:5299'
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Maximum parallel connections: 8
+[2026-11-23 13:49:09 +0000] [59088] [INFO] Radicale server ready
+[2026-11-23 13:49:09 +0000] [59088/Thread-1 (process_request_thread)] [INFO] GET request for '/' received from 127.0.0.1 using 'curl/8.23.0' HTTP/1.1
+[2026-11-23 13:49:09 +0000] [59088/Thread-1 (process_request_thread)] [INFO] GET response status for '/' in 0.000 seconds plain 19 bytes: 302 Found
+[2026-11-23 13:49:09 +0000] [59088/Thread-2 (process_request_thread)] [INFO] MKCALENDAR request for '/nitya/exp/' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:09 +0000] [59088/Thread-2 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:09 +0000] [59088/Thread-2 (process_request_thread)] [NOTICE] MKCALENDAR response status for '/nitya/exp/' in 0.024 seconds: 201 Created
+[2026-11-23 13:49:09 +0000] [59088/Thread-3 (process_request_thread)] [INFO] PUT request for '/nitya/exp/01-timed-london.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:09 +0000] [59088/Thread-3 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:09 +0000] [59088/Thread-3 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/01-timed-london.ics' in 0.059 seconds: 201 Created
+[2026-11-23 13:49:09 +0000] [59088/Thread-4 (process_request_thread)] [INFO] GET request for '/nitya/exp/01-timed-london.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:09 +0000] [59088/Thread-4 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:09 +0000] [59088/Thread-4 (process_request_thread)] [INFO] GET response status for '/nitya/exp/01-timed-london.ics' in 0.001 seconds gzip 364 bytes: 200 OK
+[2026-11-23 13:49:09 +0000] [59088/Thread-5 (process_request_thread)] [INFO] PUT request for '/nitya/exp/01-timed-london.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:09 +0000] [59088/Thread-5 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-5 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/01-timed-london.ics' in 0.034 seconds: 204 No Content
+[2026-11-23 13:49:10 +0000] [59088/Thread-6 (process_request_thread)] [INFO] GET request for '/nitya/exp/01-timed-london.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-6 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-6 (process_request_thread)] [INFO] GET response status for '/nitya/exp/01-timed-london.ics' in 0.001 seconds gzip 383 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-7 (process_request_thread)] [INFO] PUT request for '/nitya/exp/02-all-day.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-7 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-7 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/02-all-day.ics' in 0.029 seconds: 201 Created
+[2026-11-23 13:49:10 +0000] [59088/Thread-8 (process_request_thread)] [INFO] GET request for '/nitya/exp/02-all-day.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-8 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-8 (process_request_thread)] [INFO] GET response status for '/nitya/exp/02-all-day.ics' in 0.001 seconds gzip 208 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-9 (process_request_thread)] [INFO] PUT request for '/nitya/exp/02-all-day.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-9 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-9 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/02-all-day.ics' in 0.030 seconds: 204 No Content
+[2026-11-23 13:49:10 +0000] [59088/Thread-10 (process_request_thread)] [INFO] GET request for '/nitya/exp/02-all-day.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-10 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-10 (process_request_thread)] [INFO] GET response status for '/nitya/exp/02-all-day.ics' in 0.001 seconds gzip 230 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-11 (process_request_thread)] [INFO] PUT request for '/nitya/exp/03-multi-day-all-day.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-11 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-11 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/03-multi-day-all-day.ics' in 0.025 seconds: 201 Created
+[2026-11-23 13:49:10 +0000] [59088/Thread-12 (process_request_thread)] [INFO] GET request for '/nitya/exp/03-multi-day-all-day.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-12 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-12 (process_request_thread)] [INFO] GET response status for '/nitya/exp/03-multi-day-all-day.ics' in 0.001 seconds gzip 205 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-13 (process_request_thread)] [INFO] PUT request for '/nitya/exp/03-multi-day-all-day.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-13 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-13 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/03-multi-day-all-day.ics' in 0.028 seconds: 204 No Content
+[2026-11-23 13:49:10 +0000] [59088/Thread-14 (process_request_thread)] [INFO] GET request for '/nitya/exp/03-multi-day-all-day.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-14 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-14 (process_request_thread)] [INFO] GET response status for '/nitya/exp/03-multi-day-all-day.ics' in 0.001 seconds gzip 226 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-15 (process_request_thread)] [INFO] PUT request for '/nitya/exp/04-floating.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-15 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-15 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/04-floating.ics' in 0.031 seconds: 201 Created
+[2026-11-23 13:49:10 +0000] [59088/Thread-16 (process_request_thread)] [INFO] GET request for '/nitya/exp/04-floating.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-16 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-16 (process_request_thread)] [INFO] GET response status for '/nitya/exp/04-floating.ics' in 0.001 seconds gzip 203 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-17 (process_request_thread)] [INFO] PUT request for '/nitya/exp/04-floating.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-17 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-17 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/04-floating.ics' in 0.031 seconds: 204 No Content
+[2026-11-23 13:49:10 +0000] [59088/Thread-18 (process_request_thread)] [INFO] GET request for '/nitya/exp/04-floating.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-18 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-18 (process_request_thread)] [INFO] GET response status for '/nitya/exp/04-floating.ics' in 0.001 seconds gzip 223 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-19 (process_request_thread)] [INFO] PUT request for '/nitya/exp/05-utc.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-19 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-19 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/05-utc.ics' in 0.028 seconds: 201 Created
+[2026-11-23 13:49:10 +0000] [59088/Thread-20 (process_request_thread)] [INFO] GET request for '/nitya/exp/05-utc.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-20 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-20 (process_request_thread)] [INFO] GET response status for '/nitya/exp/05-utc.ics' in 0.001 seconds gzip 189 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-21 (process_request_thread)] [INFO] PUT request for '/nitya/exp/05-utc.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-21 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-21 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/05-utc.ics' in 0.031 seconds: 204 No Content
+[2026-11-23 13:49:10 +0000] [59088/Thread-22 (process_request_thread)] [INFO] GET request for '/nitya/exp/05-utc.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-22 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-22 (process_request_thread)] [INFO] GET response status for '/nitya/exp/05-utc.ics' in 0.002 seconds gzip 209 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-23 (process_request_thread)] [INFO] PUT request for '/nitya/exp/06-weekly-count.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-23 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-23 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/06-weekly-count.ics' in 0.029 seconds: 201 Created
+[2026-11-23 13:49:10 +0000] [59088/Thread-24 (process_request_thread)] [INFO] GET request for '/nitya/exp/06-weekly-count.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-24 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-24 (process_request_thread)] [INFO] GET response status for '/nitya/exp/06-weekly-count.ics' in 0.001 seconds gzip 366 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-25 (process_request_thread)] [INFO] PUT request for '/nitya/exp/06-weekly-count.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-25 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-25 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/06-weekly-count.ics' in 0.033 seconds: 204 No Content
+[2026-11-23 13:49:10 +0000] [59088/Thread-26 (process_request_thread)] [INFO] GET request for '/nitya/exp/06-weekly-count.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-26 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-26 (process_request_thread)] [INFO] GET response status for '/nitya/exp/06-weekly-count.ics' in 0.001 seconds gzip 388 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-27 (process_request_thread)] [INFO] PUT request for '/nitya/exp/07-weekly-exdate.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-27 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-27 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/07-weekly-exdate.ics' in 0.035 seconds: 201 Created
+[2026-11-23 13:49:10 +0000] [59088/Thread-28 (process_request_thread)] [INFO] GET request for '/nitya/exp/07-weekly-exdate.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-28 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-28 (process_request_thread)] [INFO] GET response status for '/nitya/exp/07-weekly-exdate.ics' in 0.001 seconds gzip 400 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-29 (process_request_thread)] [INFO] PUT request for '/nitya/exp/07-weekly-exdate.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-29 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-29 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/07-weekly-exdate.ics' in 0.035 seconds: 204 No Content
+[2026-11-23 13:49:10 +0000] [59088/Thread-30 (process_request_thread)] [INFO] GET request for '/nitya/exp/07-weekly-exdate.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-30 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-30 (process_request_thread)] [INFO] GET response status for '/nitya/exp/07-weekly-exdate.ics' in 0.001 seconds gzip 425 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-31 (process_request_thread)] [INFO] PUT request for '/nitya/exp/08-daily-moved-instance.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-31 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-31 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/08-daily-moved-instance.ics' in 0.036 seconds: 201 Created
+[2026-11-23 13:49:10 +0000] [59088/Thread-32 (process_request_thread)] [INFO] GET request for '/nitya/exp/08-daily-moved-instance.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-32 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-32 (process_request_thread)] [INFO] GET response status for '/nitya/exp/08-daily-moved-instance.ics' in 0.001 seconds gzip 420 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-33 (process_request_thread)] [INFO] PUT request for '/nitya/exp/08-daily-moved-instance.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-33 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-33 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/08-daily-moved-instance.ics' in 0.036 seconds: 204 No Content
+[2026-11-23 13:49:10 +0000] [59088/Thread-34 (process_request_thread)] [INFO] GET request for '/nitya/exp/08-daily-moved-instance.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-34 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-34 (process_request_thread)] [INFO] GET response status for '/nitya/exp/08-daily-moved-instance.ics' in 0.001 seconds gzip 431 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-35 (process_request_thread)] [INFO] PUT request for '/nitya/exp/09-cancelled-instance.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-35 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-35 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/09-cancelled-instance.ics' in 0.035 seconds: 201 Created
+[2026-11-23 13:49:10 +0000] [59088/Thread-36 (process_request_thread)] [INFO] GET request for '/nitya/exp/09-cancelled-instance.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-36 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-36 (process_request_thread)] [INFO] GET response status for '/nitya/exp/09-cancelled-instance.ics' in 0.001 seconds gzip 430 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-37 (process_request_thread)] [INFO] PUT request for '/nitya/exp/09-cancelled-instance.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-37 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-37 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/09-cancelled-instance.ics' in 0.031 seconds: 204 No Content
+[2026-11-23 13:49:10 +0000] [59088/Thread-38 (process_request_thread)] [INFO] GET request for '/nitya/exp/09-cancelled-instance.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-38 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-38 (process_request_thread)] [INFO] GET response status for '/nitya/exp/09-cancelled-instance.ics' in 0.001 seconds gzip 444 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-39 (process_request_thread)] [INFO] PUT request for '/nitya/exp/10a-thisandfuture-range.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-39 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-39 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/10a-thisandfuture-range.ics' in 0.030 seconds: 201 Created
+[2026-11-23 13:49:10 +0000] [59088/Thread-40 (process_request_thread)] [INFO] GET request for '/nitya/exp/10a-thisandfuture-range.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-40 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-40 (process_request_thread)] [INFO] GET response status for '/nitya/exp/10a-thisandfuture-range.ics' in 0.001 seconds gzip 455 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-41 (process_request_thread)] [INFO] PUT request for '/nitya/exp/10a-thisandfuture-range.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-41 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-41 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/10a-thisandfuture-range.ics' in 0.034 seconds: 204 No Content
+[2026-11-23 13:49:10 +0000] [59088/Thread-42 (process_request_thread)] [INFO] GET request for '/nitya/exp/10a-thisandfuture-range.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-42 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-42 (process_request_thread)] [INFO] GET response status for '/nitya/exp/10a-thisandfuture-range.ics' in 0.001 seconds gzip 468 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-43 (process_request_thread)] [INFO] PUT request for '/nitya/exp/10b-split-series-whole.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-43 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-43 (process_request_thread)] [WARNING] Bad PUT request on '/nitya/exp/10b-split-series-whole.ics' (prepare): Multiple VEVENT components with different UIDs in object: 'c10b-1@nitya-corpus', 'c10b-2@nitya-corpus'
+[2026-11-23 13:49:10 +0000] [59088/Thread-43 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/10b-split-series-whole.ics' in 0.003 seconds gzip 31 bytes: 400 Bad Request
+[2026-11-23 13:49:10 +0000] [59088/Thread-44 (process_request_thread)] [INFO] PUT request for '/nitya/exp/10b-split-series-0.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-44 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-44 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/10b-split-series-0.ics' in 0.035 seconds: 201 Created
+[2026-11-23 13:49:10 +0000] [59088/Thread-45 (process_request_thread)] [INFO] PUT request for '/nitya/exp/10b-split-series-1.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-45 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-45 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/10b-split-series-1.ics' in 0.033 seconds: 201 Created
+[2026-11-23 13:49:10 +0000] [59088/Thread-46 (process_request_thread)] [INFO] GET request for '/nitya/exp/10b-split-series-0.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-46 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-46 (process_request_thread)] [INFO] GET response status for '/nitya/exp/10b-split-series-0.ics' in 0.001 seconds gzip 392 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-47 (process_request_thread)] [INFO] GET request for '/nitya/exp/10b-split-series-1.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-47 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-47 (process_request_thread)] [INFO] GET response status for '/nitya/exp/10b-split-series-1.ics' in 0.001 seconds gzip 416 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-48 (process_request_thread)] [INFO] PUT request for '/nitya/exp/10b-split-series-0.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-48 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-48 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/10b-split-series-0.ics' in 0.033 seconds: 204 No Content
+[2026-11-23 13:49:10 +0000] [59088/Thread-49 (process_request_thread)] [INFO] PUT request for '/nitya/exp/10b-split-series-1.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-49 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-49 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/10b-split-series-1.ics' in 0.035 seconds: 204 No Content
+[2026-11-23 13:49:10 +0000] [59088/Thread-50 (process_request_thread)] [INFO] GET request for '/nitya/exp/10b-split-series-0.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-50 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-50 (process_request_thread)] [INFO] GET response status for '/nitya/exp/10b-split-series-0.ics' in 0.001 seconds gzip 411 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-51 (process_request_thread)] [INFO] GET request for '/nitya/exp/10b-split-series-1.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-51 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-51 (process_request_thread)] [INFO] GET response status for '/nitya/exp/10b-split-series-1.ics' in 0.001 seconds gzip 435 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-52 (process_request_thread)] [INFO] PUT request for '/nitya/exp/11-weekly-across-dst.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-52 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-52 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/11-weekly-across-dst.ics' in 0.035 seconds: 201 Created
+[2026-11-23 13:49:10 +0000] [59088/Thread-53 (process_request_thread)] [INFO] GET request for '/nitya/exp/11-weekly-across-dst.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-53 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-53 (process_request_thread)] [INFO] GET response status for '/nitya/exp/11-weekly-across-dst.ics' in 0.001 seconds gzip 384 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-54 (process_request_thread)] [INFO] PUT request for '/nitya/exp/11-weekly-across-dst.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-54 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-54 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/11-weekly-across-dst.ics' in 0.032 seconds: 204 No Content
+[2026-11-23 13:49:10 +0000] [59088/Thread-55 (process_request_thread)] [INFO] GET request for '/nitya/exp/11-weekly-across-dst.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-55 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-55 (process_request_thread)] [INFO] GET response status for '/nitya/exp/11-weekly-across-dst.ics' in 0.001 seconds gzip 408 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-56 (process_request_thread)] [INFO] PUT request for '/nitya/exp/12-other-zone-new-york.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-56 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-56 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/12-other-zone-new-york.ics' in 0.037 seconds: 201 Created
+[2026-11-23 13:49:10 +0000] [59088/Thread-57 (process_request_thread)] [INFO] GET request for '/nitya/exp/12-other-zone-new-york.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-57 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-57 (process_request_thread)] [INFO] GET response status for '/nitya/exp/12-other-zone-new-york.ics' in 0.001 seconds gzip 397 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-58 (process_request_thread)] [INFO] PUT request for '/nitya/exp/12-other-zone-new-york.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-58 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-58 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/12-other-zone-new-york.ics' in 0.033 seconds: 204 No Content
+[2026-11-23 13:49:10 +0000] [59088/Thread-59 (process_request_thread)] [INFO] GET request for '/nitya/exp/12-other-zone-new-york.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-59 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-59 (process_request_thread)] [INFO] GET response status for '/nitya/exp/12-other-zone-new-york.ics' in 0.001 seconds gzip 419 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-60 (process_request_thread)] [INFO] PUT request for '/nitya/exp/13-half-hour-zone.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-60 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-60 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/13-half-hour-zone.ics' in 0.030 seconds: 201 Created
+[2026-11-23 13:49:10 +0000] [59088/Thread-61 (process_request_thread)] [INFO] GET request for '/nitya/exp/13-half-hour-zone.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-61 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:10 +0000] [59088/Thread-61 (process_request_thread)] [INFO] GET response status for '/nitya/exp/13-half-hour-zone.ics' in 0.001 seconds gzip 285 bytes: 200 OK
+[2026-11-23 13:49:10 +0000] [59088/Thread-62 (process_request_thread)] [INFO] PUT request for '/nitya/exp/13-half-hour-zone.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:10 +0000] [59088/Thread-62 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-62 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/13-half-hour-zone.ics' in 0.028 seconds: 204 No Content
+[2026-11-23 13:49:11 +0000] [59088/Thread-63 (process_request_thread)] [INFO] GET request for '/nitya/exp/13-half-hour-zone.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-63 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-63 (process_request_thread)] [INFO] GET response status for '/nitya/exp/13-half-hour-zone.ics' in 0.001 seconds gzip 305 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-64 (process_request_thread)] [INFO] PUT request for '/nitya/exp/14-monthly-last-friday.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-64 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-64 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/14-monthly-last-friday.ics' in 0.030 seconds: 201 Created
+[2026-11-23 13:49:11 +0000] [59088/Thread-65 (process_request_thread)] [INFO] GET request for '/nitya/exp/14-monthly-last-friday.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-65 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-65 (process_request_thread)] [INFO] GET response status for '/nitya/exp/14-monthly-last-friday.ics' in 0.001 seconds gzip 370 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-66 (process_request_thread)] [INFO] PUT request for '/nitya/exp/14-monthly-last-friday.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-66 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-66 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/14-monthly-last-friday.ics' in 0.031 seconds: 204 No Content
+[2026-11-23 13:49:11 +0000] [59088/Thread-67 (process_request_thread)] [INFO] GET request for '/nitya/exp/14-monthly-last-friday.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-67 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-67 (process_request_thread)] [INFO] GET response status for '/nitya/exp/14-monthly-last-friday.ics' in 0.001 seconds gzip 391 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-68 (process_request_thread)] [INFO] PUT request for '/nitya/exp/15-monthly-bysetpos.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-68 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-68 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/15-monthly-bysetpos.ics' in 0.032 seconds: 201 Created
+[2026-11-23 13:49:11 +0000] [59088/Thread-69 (process_request_thread)] [INFO] GET request for '/nitya/exp/15-monthly-bysetpos.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-69 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-69 (process_request_thread)] [INFO] GET response status for '/nitya/exp/15-monthly-bysetpos.ics' in 0.001 seconds gzip 393 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-70 (process_request_thread)] [INFO] PUT request for '/nitya/exp/15-monthly-bysetpos.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-70 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-70 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/15-monthly-bysetpos.ics' in 0.030 seconds: 204 No Content
+[2026-11-23 13:49:11 +0000] [59088/Thread-71 (process_request_thread)] [INFO] GET request for '/nitya/exp/15-monthly-bysetpos.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-71 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-71 (process_request_thread)] [INFO] GET response status for '/nitya/exp/15-monthly-bysetpos.ics' in 0.001 seconds gzip 413 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-72 (process_request_thread)] [INFO] PUT request for '/nitya/exp/16-rdate.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-72 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-72 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/16-rdate.ics' in 0.033 seconds: 201 Created
+[2026-11-23 13:49:11 +0000] [59088/Thread-73 (process_request_thread)] [INFO] GET request for '/nitya/exp/16-rdate.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-73 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-73 (process_request_thread)] [INFO] GET response status for '/nitya/exp/16-rdate.ics' in 0.001 seconds gzip 392 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-74 (process_request_thread)] [INFO] PUT request for '/nitya/exp/16-rdate.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-74 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-74 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/16-rdate.ics' in 0.035 seconds: 204 No Content
+[2026-11-23 13:49:11 +0000] [59088/Thread-75 (process_request_thread)] [INFO] GET request for '/nitya/exp/16-rdate.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-75 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-75 (process_request_thread)] [INFO] GET response status for '/nitya/exp/16-rdate.ics' in 0.001 seconds gzip 413 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-76 (process_request_thread)] [INFO] PUT request for '/nitya/exp/17-yearly-all-day.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-76 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-76 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/17-yearly-all-day.ics' in 0.029 seconds: 201 Created
+[2026-11-23 13:49:11 +0000] [59088/Thread-77 (process_request_thread)] [INFO] GET request for '/nitya/exp/17-yearly-all-day.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-77 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-77 (process_request_thread)] [INFO] GET response status for '/nitya/exp/17-yearly-all-day.ics' in 0.001 seconds gzip 216 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-78 (process_request_thread)] [INFO] PUT request for '/nitya/exp/17-yearly-all-day.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-78 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-78 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/17-yearly-all-day.ics' in 0.026 seconds: 204 No Content
+[2026-11-23 13:49:11 +0000] [59088/Thread-79 (process_request_thread)] [INFO] GET request for '/nitya/exp/17-yearly-all-day.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-79 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-79 (process_request_thread)] [INFO] GET response status for '/nitya/exp/17-yearly-all-day.ics' in 0.000 seconds gzip 242 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-80 (process_request_thread)] [INFO] PUT request for '/nitya/exp/18-attendees.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-80 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-80 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/18-attendees.ics' in 0.031 seconds: 201 Created
+[2026-11-23 13:49:11 +0000] [59088/Thread-81 (process_request_thread)] [INFO] GET request for '/nitya/exp/18-attendees.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-81 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-81 (process_request_thread)] [INFO] GET response status for '/nitya/exp/18-attendees.ics' in 0.001 seconds gzip 562 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-82 (process_request_thread)] [INFO] PUT request for '/nitya/exp/18-attendees.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-82 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-82 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/18-attendees.ics' in 0.035 seconds: 204 No Content
+[2026-11-23 13:49:11 +0000] [59088/Thread-83 (process_request_thread)] [INFO] GET request for '/nitya/exp/18-attendees.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-83 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-83 (process_request_thread)] [INFO] GET response status for '/nitya/exp/18-attendees.ics' in 0.001 seconds gzip 573 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-84 (process_request_thread)] [INFO] PUT request for '/nitya/exp/19-long-unicode-text.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-84 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-84 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/19-long-unicode-text.ics' in 0.034 seconds: 201 Created
+[2026-11-23 13:49:11 +0000] [59088/Thread-85 (process_request_thread)] [INFO] GET request for '/nitya/exp/19-long-unicode-text.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-85 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-85 (process_request_thread)] [INFO] GET response status for '/nitya/exp/19-long-unicode-text.ics' in 0.001 seconds gzip 581 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-86 (process_request_thread)] [INFO] PUT request for '/nitya/exp/19-long-unicode-text.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-86 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-86 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/19-long-unicode-text.ics' in 0.035 seconds: 204 No Content
+[2026-11-23 13:49:11 +0000] [59088/Thread-87 (process_request_thread)] [INFO] GET request for '/nitya/exp/19-long-unicode-text.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-87 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-87 (process_request_thread)] [INFO] GET response status for '/nitya/exp/19-long-unicode-text.ics' in 0.001 seconds gzip 606 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-88 (process_request_thread)] [INFO] PUT request for '/nitya/exp/20-attach-url-x-props.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-88 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-88 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/20-attach-url-x-props.ics' in 0.030 seconds: 201 Created
+[2026-11-23 13:49:11 +0000] [59088/Thread-89 (process_request_thread)] [INFO] GET request for '/nitya/exp/20-attach-url-x-props.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-89 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-89 (process_request_thread)] [INFO] GET response status for '/nitya/exp/20-attach-url-x-props.ics' in 0.001 seconds gzip 496 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-90 (process_request_thread)] [INFO] PUT request for '/nitya/exp/20-attach-url-x-props.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-90 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-90 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/20-attach-url-x-props.ics' in 0.029 seconds: 204 No Content
+[2026-11-23 13:49:11 +0000] [59088/Thread-91 (process_request_thread)] [INFO] GET request for '/nitya/exp/20-attach-url-x-props.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-91 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-91 (process_request_thread)] [INFO] GET response status for '/nitya/exp/20-attach-url-x-props.ics' in 0.001 seconds gzip 518 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-92 (process_request_thread)] [INFO] PUT request for '/nitya/exp/21-alarms.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-92 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-92 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/21-alarms.ics' in 0.030 seconds: 201 Created
+[2026-11-23 13:49:11 +0000] [59088/Thread-93 (process_request_thread)] [INFO] GET request for '/nitya/exp/21-alarms.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-93 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-93 (process_request_thread)] [INFO] GET response status for '/nitya/exp/21-alarms.ics' in 0.001 seconds gzip 403 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-94 (process_request_thread)] [INFO] PUT request for '/nitya/exp/21-alarms.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-94 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-94 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/21-alarms.ics' in 0.033 seconds: 204 No Content
+[2026-11-23 13:49:11 +0000] [59088/Thread-95 (process_request_thread)] [INFO] GET request for '/nitya/exp/21-alarms.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-95 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-95 (process_request_thread)] [INFO] GET response status for '/nitya/exp/21-alarms.ics' in 0.001 seconds gzip 423 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-96 (process_request_thread)] [INFO] PUT request for '/nitya/exp/22-all-day-series-timed-override.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-96 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-96 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/22-all-day-series-timed-override.ics' in 0.035 seconds: 201 Created
+[2026-11-23 13:49:11 +0000] [59088/Thread-97 (process_request_thread)] [INFO] GET request for '/nitya/exp/22-all-day-series-timed-override.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-97 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-97 (process_request_thread)] [INFO] GET response status for '/nitya/exp/22-all-day-series-timed-override.ics' in 0.001 seconds gzip 428 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-98 (process_request_thread)] [INFO] PUT request for '/nitya/exp/22-all-day-series-timed-override.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-98 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-98 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/22-all-day-series-timed-override.ics' in 0.034 seconds: 204 No Content
+[2026-11-23 13:49:11 +0000] [59088/Thread-99 (process_request_thread)] [INFO] GET request for '/nitya/exp/22-all-day-series-timed-override.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-99 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-99 (process_request_thread)] [INFO] GET response status for '/nitya/exp/22-all-day-series-timed-override.ics' in 0.001 seconds gzip 443 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-100 (process_request_thread)] [INFO] PUT request for '/nitya/exp/23-private-busy-status.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-100 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-100 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/23-private-busy-status.ics' in 0.030 seconds: 201 Created
+[2026-11-23 13:49:11 +0000] [59088/Thread-101 (process_request_thread)] [INFO] GET request for '/nitya/exp/23-private-busy-status.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-101 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-101 (process_request_thread)] [INFO] GET response status for '/nitya/exp/23-private-busy-status.ics' in 0.001 seconds gzip 388 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088/Thread-102 (process_request_thread)] [INFO] PUT request for '/nitya/exp/23-private-busy-status.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-102 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-102 (process_request_thread)] [INFO] PUT response status for '/nitya/exp/23-private-busy-status.ics' in 0.029 seconds: 204 No Content
+[2026-11-23 13:49:11 +0000] [59088/Thread-103 (process_request_thread)] [INFO] GET request for '/nitya/exp/23-private-busy-status.ics' received from 127.0.0.1 using 'ureq/2.12.1' HTTP/1.1
+[2026-11-23 13:49:11 +0000] [59088/Thread-103 (process_request_thread)] [INFO] Successful login: 'nitya' (none)
+[2026-11-23 13:49:11 +0000] [59088/Thread-103 (process_request_thread)] [INFO] GET response status for '/nitya/exp/23-private-busy-status.ics' in 0.001 seconds gzip 411 bytes: 200 OK
+[2026-11-23 13:49:11 +0000] [59088] [INFO] Stopping Radicale
