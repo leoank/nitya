@@ -74,6 +74,15 @@ rejects a bare link here. Metric runs also land in results.tsv.
 - [[RUN-20261123-f5xbz0]] local Radicale: all 24 keep meaning and every property on import
   and write-back, one resource per UID; a two-UID resource is refused; bytes are
   re-serialized, so change detection must use ETags
+- [[RUN-20261124-hwkxry]] Google Calendar API: meaning kept for 21 of 24 on import and all
+  23 written back; RRULE, EXDATE, RDATE and the UID as given; floating time becomes zoned,
+  THISANDFUTURE refused; imports only events the calendar itself organizes or attends
+- [[RUN-20261124-hwkyzz]] Microsoft Graph: meaning kept for 18 of 24 on import and all 22
+  written back; own UIDs; RDATE and THISANDFUTURE refused; a cancelled instance becomes
+  an EXDATE, URL, attachments and X- properties and a second alarm are lost; an iTIP
+  reply reached the inbox in seconds but not the event's attendee status
+- [[RUN-20261124-hwkxry]] compute run, not yet described
+- [[RUN-20261124-hwkyzz]] compute run, not yet described
 
 ## Conclusion
 Written once, by a human, when status becomes `concluded`.

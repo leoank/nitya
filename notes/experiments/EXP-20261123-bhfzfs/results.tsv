@@ -1,3 +1,5 @@
-run	finished	cases	icalendar_same	icalendar-parser_same	calcard_same	import_same	writeback_same	multi_uid_refused_as_one
-RUN-20261123-f5xbpv	2026-11-23T13:49+00:00	24	24	23	24			
-RUN-20261123-f5xbz0	2026-11-23T13:49+00:00	24				24	24	1
+run	finished	cases	icalendar_same	icalendar-parser_same	calcard_same	import_same	writeback_same	multi_uid_refused_as_one	refused	uid_kept	reply_reached_graph_s
+RUN-20261123-f5xbpv	2026-11-23T13:49+00:00	24	24	23	24						
+RUN-20261123-f5xbz0	2026-11-23T13:49+00:00	24				24	24	1			
+RUN-20261124-hwkxry	2026-11-24T16:42+00:00	24				21	23		1	23	
+RUN-20261124-hwkyzz	2026-11-24T16:55+00:00	24				18	22		2	0	null
