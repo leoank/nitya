@@ -86,10 +86,10 @@
           };
 
           # The calendar round-trip spike (EXP-20261123-bhfzfs): the default shell plus
-          # Radicale as a local CalDAV server.
+          # Radicale as a local CalDAV server, and Python for the Google and Graph drivers.
           devShells.calendar-spike = pkgs.mkShell {
             inputsFrom = [ config.devShells.default ];
-            packages = [ pkgs.radicale pkgs.curl ];
+            packages = [ pkgs.radicale pkgs.curl pkgs.python3 ];
           };
 
           # The cargo workspace, built and tested.

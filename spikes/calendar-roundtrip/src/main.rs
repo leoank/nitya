@@ -12,6 +12,10 @@
 //!                                  PUT each case to a CalDAV collection, GET it back, edit it,
 //!                                  PUT it with If-Match, GET it again, compare each time
 //!   show <file.ics>                print the instances the harness reads from one file
+//!   edit <case> <file.ics>         print the file with nitya's write-back edit applied
+//!   compare <case> <leg> <expected.ics> <got.ics>
+//!                                  print one TSV row, then the details of a difference
+//!                                  (for the Google and Graph drivers in providers.py)
 //!
 //! Each prints one TSV row per case and leg, and one `===RESULT=== {json}` line at the end.
 
@@ -726,11 +730,18 @@ fn main() {
     match a.get(1).map(String::as_str) {
         Some("crates") if a.len() == 4 => run_crates(Path::new(&a[2]), Path::new(&a[3])),
         Some("caldav") if a.len() == 5 => run_caldav(&a[2], Path::new(&a[3]), Path::new(&a[4])),
+        Some("edit") if a.len() == 4 => print!("{}", edit(&a[2], &fs::read_to_string(&a[3]).unwrap())),
+        Some("compare") if a.len() == 6 => {
+            let d = compare(&fs::read_to_string(&a[4]).unwrap(), &fs::read_to_string(&a[5]).unwrap());
+            let mut detail = String::new();
+            println!("{}", row(&a[2], &a[3], &d, &mut detail));
+            print!("{detail}");
+        }
         Some("show") if a.len() == 3 => {
             for i in instances(&parse(&fs::read_to_string(&a[2]).unwrap())).unwrap() { println!("{i}"); }
         }
         _ => {
-            eprintln!("usage: calendar-roundtrip crates <corpus> <out> | caldav <collection-url> <corpus> <out>");
+            eprintln!("usage: calendar-roundtrip crates <corpus> <out> | caldav <collection-url> <corpus> <out> | show <ics> | edit <case> <ics> | compare <case> <leg> <expected> <got>");
             std::process::exit(2);
         }
     }
