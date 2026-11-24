@@ -21,5 +21,8 @@ You need:
 
 - Nix with flakes, and checkouts of nitya and of your machine flake.
 - A Google account, for the Google Cloud project and the client.
-- A Microsoft Entra tenant in which you may register applications. The app it gets
-  accepts personal Outlook.com accounts as well as work and school ones.
+- A Microsoft Entra tenant of your own, in which you may register applications, with a
+  member user that administers it. Not your employer's or university's tenant: its admins
+  would own the app, and you lose it with the account. See
+  [Provider sign-in apps](provider-apps.md#a-tenant-of-your-own). The app it gets accepts
+  personal Outlook.com accounts as well as work and school ones.
