@@ -8,6 +8,7 @@ code: .               # code/<name> here, or a repository URL once it moves out
 created: 2026-11-23
 author: ank
 tags: []
+review: pending
 ---
 
 ## Introduction
@@ -90,7 +91,7 @@ What was tried and dropped, and why, so nobody tries it again.
 ## Experiments
 One line per experiment after its link, what it asks and what came of it; `yajna validate`
 rejects a bare link here. Newest last.
-- [[EXP-20261123-bhfzfs]] do recurring series, exceptions, zones and attendees round-trip through Google, Graph and CalDAV; planned, first
+- [[EXP-20261123-bhfzfs]] do recurring series, exceptions, zones and attendees round-trip through Google, Graph and CalDAV; concluded positive (draft): overrides and zones survive everywhere, CalDAV keeps all, Google and Graph lose known fields; providers do not apply iTIP replies, so nitya should
 - [[EXP-20261123-bhfzeh]] does the per-user key hierarchy with a sync delegate allow offline work, full audit and clean revocation; planned
 - [[EXP-20261123-bhfz49]] do Google and Microsoft refresh tokens survive 30 days on a headless server; planned, start early
 - [[EXP-20261123-bhfz7e]] can nitya spawn a saarthi session with a grant and execute its plan only after phone approval; planned
