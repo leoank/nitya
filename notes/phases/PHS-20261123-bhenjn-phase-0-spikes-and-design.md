@@ -26,7 +26,7 @@ done ones. The project page's *Progress* lists this phase on one line.
 - [x] 2. Calendar round-trip fidelity across Google, Graph and CalDAV ([[EXP-20261123-bhfzfs]]), first: the owner's chosen first risk
 - [x] 3. The key hierarchy and the sync delegate ([[EXP-20261123-bhfzeh]]); revocation corrected by ADR-0010 (proposed)
 - [ ] 4. OAuth refresh tokens on a headless server for 30 days ([[EXP-20261123-bhfz49]]), started early since it takes a month
-- [ ] 5. nitya to saarthi: spawn, plan, approval from the phone ([[EXP-20261123-bhfz7e]])
+- [ ] 5. nitya to saarthi: spawn, plan, approval from the phone ([[EXP-20261123-bhfz7e]]); paused 2026-11-26: the owner is building new saarthi APIs for it first
 - [x] 6. The flake: dev shell (Rust, yajna), Cargo workspace with `nitya-server` and `nitya-node` stub crates, packages for both, `nix flake check` building and testing the workspace and validating the notebook; protoc left until the API is chosen
 - [x] 7. Decide how poll respondents reach nitya before phase 4: a Cloudflare Worker with D1 holding only poll data, ADR-0008, accepted 2026-11-23
 

@@ -4,7 +4,7 @@ type: experiment
 schema_version: 1
 title: Can nitya, as a saarthi control-service client, spawn a session holding a scoped nitya grant, receive a write plan, and execute it only after approval from the phone, with every step audited?
 project: PRJ-0001
-status: planned           # planned | active | paused | concluded | abandoned
+status: paused            # planned | active | paused | concluded | abandoned
 outcome: null             # null | positive | negative | inconclusive | infra
 influenced_by: []
 created: 2026-11-23
