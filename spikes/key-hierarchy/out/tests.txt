@@ -1,0 +1,10 @@
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test associated_data_binds_items_to_their_place ... ok
+test every_delegate_use_is_logged_and_tampering_is_detected ... ok
+test offline_sync_with_a_calendar_only_delegate ... ok
+test recovery_from_the_passphrase_after_every_device_is_lost ... ok
+test revocation_by_rewrap_only_leaves_new_data_readable_to_the_revoked_device ... ok
+test revocation_with_dek_rotation_shuts_out_new_data_and_loses_nothing ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.79s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

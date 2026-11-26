@@ -1,0 +1,1 @@
+===RESULT=== {"items": 100000, "item_bytes": 2048, "encrypt_us_per_item": 5.98, "decrypt_us_per_item": 4.77, "revoke_rewrap_only_ms": 69.2, "revoke_rotate_deks_ms": 72.2, "delegate_unwrap_ms": 0.06, "recovery_unwrap_ms": 74.6, "create_account_ms": 77.1}

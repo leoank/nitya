@@ -4,8 +4,8 @@ type: experiment
 schema_version: 1
 title: Can per-user data keys wrapped to device keys, plus a consented sync-delegate wrap, let the nitya server sync and run jobs while the user is offline, with every unwrap in the signed audit log and device revocation losing nothing?
 project: PRJ-0001
-status: planned           # planned | active | paused | concluded | abandoned
-outcome: null             # null | positive | negative | inconclusive | infra
+status: concluded         # planned | active | paused | concluded | abandoned
+outcome: positive         # null | positive | negative | inconclusive | infra
 influenced_by: []
 created: 2026-11-23
 author: agent:claude
@@ -55,6 +55,27 @@ If 1 fails, background agent jobs need the owner online, and the phase plan chan
 ## Runs
 One line per run after its link, what was tried and what it showed; `yajna validate`
 rejects a bare link here. Metric runs also land in results.tsv.
+- [[RUN-20261126-fexqm6]] the spike: offline sync with a calendar-only delegate, the signed log
+  with checkpoints, recovery and timings (~6 µs an item, ~70 ms a revocation) hold;
+  revocation by re-wrapping only leaves new data readable to the revoked device, rotating
+  the DEKs fixes it
 
 ## Conclusion
-Written once, by a human, when status becomes `concluded`.
+*Draft by agent:claude for the owner's review.*
+
+H1 holds with one correction ([[RUN-20261126-fexqm6]]). The hierarchy lets the server sync
+and run agent jobs for the classes the owner delegates while every device is offline,
+keeps undelegated classes append-only for it, logs every use, and recovers from the
+passphrase alone; the cost is negligible (~6 µs an item, ~70 ms a revocation).
+
+The correction: revocation as ADR-0005 writes it, rotating UK and re-wrapping the same
+DEKs, does not revoke. A device that kept the account's wraps reads data written after
+its revocation. Rotating the DEKs (and the append key) at revocation, with items naming
+their key version, fixes it at no measurable cost; proposed as ADR-0010.
+
+Also shown: a log the admin rewrites and re-signs with the server's own key verifies on
+its own; only a device's checkpoint catches it. ADR-0007's checkpoints are therefore
+required, not optional, and devices must compare them on every sync.
+
+What the server's admin can read in each state is listed in the run's notes. Not done:
+step 4 of the plan, reviewing the threat model with the owner, and timings on ghost001.

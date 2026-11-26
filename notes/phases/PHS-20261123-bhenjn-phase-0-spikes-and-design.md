@@ -24,7 +24,7 @@ done ones. The project page's *Progress* lists this phase on one line.
 
 - [x] 1. The architecture and decisions ADR-0001 to ADR-0007 from the owner's interview ([[AGS-20261123-bhdnxc]])
 - [x] 2. Calendar round-trip fidelity across Google, Graph and CalDAV ([[EXP-20261123-bhfzfs]]), first: the owner's chosen first risk
-- [ ] 3. The key hierarchy and the sync delegate ([[EXP-20261123-bhfzeh]])
+- [x] 3. The key hierarchy and the sync delegate ([[EXP-20261123-bhfzeh]]); revocation corrected by ADR-0010 (proposed)
 - [ ] 4. OAuth refresh tokens on a headless server for 30 days ([[EXP-20261123-bhfz49]]), started early since it takes a month
 - [ ] 5. nitya to saarthi: spawn, plan, approval from the phone ([[EXP-20261123-bhfz7e]])
 - [x] 6. The flake: dev shell (Rust, yajna), Cargo workspace with `nitya-server` and `nitya-node` stub crates, packages for both, `nix flake check` building and testing the workspace and validating the notebook; protoc left until the API is chosen
