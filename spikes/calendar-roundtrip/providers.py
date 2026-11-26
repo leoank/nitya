@@ -1,6 +1,6 @@
 """Google Calendar and Microsoft Graph legs of EXP-20261123-bhfzfs.
 
-    python3 providers.py google|graph <harness> <corpus> <out>
+    python3 providers.py google|graph|icloud <harness> <corpus> <out>
 
 Each corpus case is written to a throwaway calendar named nitya-spike (created here,
 deleted at the end), read back, converted to iCalendar and compared with the source by
@@ -9,7 +9,7 @@ written back, read again and compared with the edit. The provider ids stay in me
 nitya's store would keep them; the source UID is used for what comes back, and whether
 the provider kept the UID is counted.
 
-Both providers speak JSON, so this file is also the experiment's first draft of the two
+Google and Graph speak JSON, so this file is also the experiment's first draft of those two
 mappings (iCalendar to JSON and back). A case it cannot express is refused before any
 write, with the reason, never written changed. Only what each API has a field for is
 mapped; the rest is reported as lost by the harness.
@@ -21,7 +21,10 @@ owner's addresses and name are replaced by placeholders in everything written to
 Graph cannot save a meeting without inviting its attendees, so case 18 is rewritten for
 Graph: the owner's Microsoft account organizes, the owner's Google account is the one
 attendee (the owner chose this). The Graph run then answers the invitation from Google
-and waits for the answer to reach Graph (prediction 4).
+and waits for the answer to reach Graph (prediction 4). iCloud speaks CalDAV and stores
+iCalendar as given; it also schedules on the server. The owner's Apple ID is their Gmail
+address, the only one iCloud organizes as, so iCloud's case 18 invites the owner's
+Microsoft account instead, and the run answers from Graph.
 """
 
 import datetime as dt
@@ -996,8 +999,209 @@ class Graph:
         detail.append(f"## 18-attendees / itip-reply\n{json.dumps(res)}\n\n")
 
 
+# ------------------------------------------------------------------ iCloud (CalDAV)
+
+ICLOUD = "https://caldav.icloud.com/"
+NS = {"d": "DAV:", "c": "urn:ietf:params:xml:ns:caldav"}
+
+
+def dav(method, url, auth, body=None, headers=None):
+    """One WebDAV request; follows redirects (urllib does not for PROPFIND) and retries
+    throttling. Returns (status, headers, text)."""
+    h = {"Authorization": auth, **(headers or {})}
+    data = body.encode() if isinstance(body, str) else body
+    for attempt in range(8):
+        req = urllib.request.Request(url, data=data, method=method, headers=h)
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return r.status, r.headers, r.read().decode()
+        except urllib.error.HTTPError as e:
+            raw = e.read().decode(errors="replace")
+            if e.code in (301, 302, 307, 308) and e.headers.get("Location"):
+                url = urllib.parse.urljoin(url, e.headers["Location"])
+                continue
+            if e.code in (429, 500, 502, 503, 504):
+                time.sleep(float(e.headers.get("Retry-After") or 2 ** attempt))
+                continue
+            where = re.sub(r"/\d{5,}/", "/<dsid>/", urllib.parse.urlsplit(url).path)
+            raise RuntimeError(f"{method} {where}: HTTP {e.code}: {raw[:400]}")
+    raise RuntimeError(f"{method}: still throttled")
+
+
+def propfind(url, auth, props):
+    import xml.etree.ElementTree as ET
+    body = ('<?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:" '
+            'xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop>' + "".join(f"<{x}/>" for x in props) +
+            "</d:prop></d:propfind>")
+    _, _, text = dav("PROPFIND", url, auth, body, {"Depth": "0", "Content-Type": "application/xml; charset=utf-8"})
+    return ET.fromstring(text)
+
+
+def merge(texts):
+    """Several calendar resources as one VCALENDAR: the first one's head, every
+    VTIMEZONE once by TZID, every VEVENT."""
+    head, tzs, evs = None, {}, []
+    for t in texts:
+        c = vcal(parse(t))
+        if head is None:
+            head = [p["line"] for p in c.props]
+        for ch in c.children:
+            if ch.kind == "VTIMEZONE":
+                tzs.setdefault(ch.text("TZID"), ch.lines)
+            elif ch.kind == "VEVENT":
+                evs.append(ch.lines)
+    lines = ["BEGIN:VCALENDAR", *head]
+    for t in tzs.values():
+        lines += t
+    for e in evs:
+        lines += e
+    return fold(lines + ["END:VCALENDAR"])
+
+
+class ICloud:
+    """iCloud's CalDAV, with an app-specific password. iCloud schedules on the server
+    (RFC 6638): saving an event that has attendees sends the invitations itself."""
+
+    def __init__(self, red):
+        import base64
+        self.red = red
+        t = secret("icloud_personal_token.json")
+        self.user = t["username"]
+        self.auth = "Basic " + base64.b64encode(f"{t['username']}:{t['app_password']}".encode()).decode()
+        red.add(self.user, "owner-icloud@example.invalid")
+        x = propfind(ICLOUD, self.auth, ["d:current-user-principal"])
+        principal = urllib.parse.urljoin(ICLOUD, x.find(".//d:current-user-principal/d:href", NS).text)
+        x = propfind(principal, self.auth, ["c:calendar-home-set", "c:calendar-user-address-set", "d:displayname"])
+        self.home = urllib.parse.urljoin(principal, x.find(".//c:calendar-home-set/d:href", NS).text)
+        addrs = [h.text for h in x.findall(".//c:calendar-user-address-set/d:href", NS)]
+        # the account's other scheduling addresses (principal paths, a urn) identify it too
+        red.add(urllib.parse.urlsplit(principal).path, "/owner-icloud-principal/")
+        for a in addrs:
+            if not a.lower().startswith("mailto:"):
+                red.add(urllib.parse.urlsplit(a).path if a.startswith(("/", "http")) else a, "owner-icloud-principal")
+        mails = [a[7:] for a in addrs if a.lower().startswith("mailto:")]
+        for a in mails:
+            red.add(a, "owner-icloud@example.invalid")
+        name = x.find(".//d:displayname", NS)
+        if name is not None and name.text:
+            red.add(name.text, "Owner")
+        # the organizer for case 18: the Apple ID if iCloud schedules for it, else its first address
+        self.me = self.user if self.user.lower() in (m.lower() for m in mails) else (mails[0] if mails else self.user)
+        # case 18's attendee: the owner's Microsoft account (the Apple ID is the owner's
+        # Gmail address, the only one iCloud organizes as; the owner chose this)
+        self.ms = Graph(red)
+        self.google = self.ms.google
+        self.etags, self.created, self.ids = {}, [], {}
+
+    def setup(self):
+        import uuid
+        self.cal = self.home.rstrip("/") + f"/{uuid.uuid4().hex.upper()}/"
+        body = ('<?xml version="1.0" encoding="utf-8"?><c:mkcalendar xmlns:d="DAV:" '
+                'xmlns:c="urn:ietf:params:xml:ns:caldav"><d:set><d:prop>'
+                f"<d:displayname>{CAL_NAME}</d:displayname>"
+                '<c:supported-calendar-component-set><c:comp name="VEVENT"/></c:supported-calendar-component-set>'
+                "</d:prop></d:set></c:mkcalendar>")
+        dav("MKCALENDAR", self.cal, self.auth, body, {"Content-Type": "application/xml; charset=utf-8"})
+
+    def teardown(self):
+        # each event first, so the meeting of case 18 is cancelled for its attendee
+        for url in self.created:
+            try:
+                dav("DELETE", url, self.auth)
+            except RuntimeError:
+                pass
+        dav("DELETE", self.cal, self.auth)
+
+    def adapt(self, name, src):
+        if not name.startswith("18-"):
+            return src
+        lines = [l for l in unfold(src) if not l.startswith(("ATTENDEE", "ORGANIZER"))]
+        i = lines.index("END:VEVENT")
+        lines[i:i] = [f"ORGANIZER;CN=Owner:mailto:{self.me}",
+                      f"ATTENDEE;CN=Owner (Microsoft);ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:{self.ms.me}"]
+        return fold(lines)
+
+    def unredact(self, text):
+        """Address placeholders back to one real address each (several of the owner's
+        iCloud addresses share a placeholder; the organizer's is the one written)."""
+        back = {"owner-icloud@example.invalid": self.me,
+                "owner-google@example.invalid": next(r for r, ph in self.red.pairs if ph == "owner-google@example.invalid"),
+                "owner-microsoft@example.invalid": self.ms.me}
+        for ph, real in back.items():
+            text = text.replace(ph, real)
+        return text
+
+    def resources(self, cal):
+        """One resource per UID (RFC 4791 section 4.1), with the calendar's VTIMEZONEs."""
+        out = []
+        for uid, (m, ovs) in by_uid(cal).items():
+            groups = [c.lines for c in ([m] if m else []) + ovs]
+            out.append((uid, write_ics(cal, groups, tzids_of(groups))))
+        return out
+
+    def create(self, name, cal):
+        ids = {}
+        for i, (uid, text) in enumerate(self.resources(cal)):
+            url = f"{self.cal}{name}-{i}.ics"
+            dav("PUT", url, self.auth, text, {"Content-Type": "text/calendar; charset=utf-8", "If-None-Match": "*"})
+            self.created.append(url)
+            ids[uid] = self.ids[uid] = url
+        return ids
+
+    def read(self, name, cal, ids):
+        texts, kept = [], 1
+        for uid in by_uid(cal):
+            _, h, text = dav("GET", ids[uid], self.auth)
+            self.etags[ids[uid]] = h.get("ETag")
+            kept &= all(e.text("UID") == uid for e in vcal(parse(text)).children if e.kind == "VEVENT")
+            texts.append(text)
+        return merge(texts), int(kept)
+
+    def update(self, name, edited, ids):
+        for uid, text in self.resources(edited):
+            url = ids[uid]
+            hdr = {"Content-Type": "text/calendar; charset=utf-8"}
+            if self.etags.get(url):
+                hdr["If-Match"] = self.etags[url]
+            dav("PUT", url, self.auth, self.unredact(text), hdr)
+
+    def after(self, counts, rows, detail):
+        """Prediction 4: answer case 18's invitation from Outlook.com; wait for iCloud to
+        show it, and look for the reply in the organizer's (Gmail) inbox."""
+        uid = next((u for u in self.ids if u.startswith("c18")), None)
+        if not uid:
+            return
+        res = {"invite_reached_microsoft_s": None, "reply_reached_icloud_s": None, "reply_in_gmail": None}
+        found, t0 = None, time.time()
+        q = urllib.parse.quote(f"iCalUId eq '{uid}'")
+        while time.time() - t0 < 300 and not found:
+            items = self.ms.get(f"/me/events?$filter={q}&$select=id").get("value", [])
+            found = items[0] if items else None
+            if not found:
+                time.sleep(10)
+        if found:
+            res["invite_reached_microsoft_s"] = round(time.time() - t0)
+            http("POST", f"{MG}/me/events/{found['id']}/accept", self.ms.tok, {"sendResponse": True})
+            addr = self.ms.me.lower()
+            t1 = time.time()
+            while time.time() - t1 < 600:
+                text = dav("GET", self.ids[uid], self.auth)[2]
+                att = [l for l in unfold(text) if l.startswith("ATTENDEE") and addr in l.lower()]
+                if any("PARTSTAT=ACCEPTED" in l for l in att):
+                    res["reply_reached_icloud_s"] = round(time.time() - t1)
+                    break
+                time.sleep(15)
+            # where the reply went: the organizer's address is the Gmail account
+            gq = urllib.parse.urlencode({"q": 'subject:"Accepted: Meeting with every participation status" newer_than:1d'})
+            msgs = http("GET", f"https://gmail.googleapis.com/gmail/v1/users/me/messages?{gq}", self.google.tok).get("messages", [])
+            res["reply_in_gmail"] = bool(msgs)
+        counts.update(res)
+        rows.append(f"18-attendees\titip-reply\t{'same' if res['reply_reached_icloud_s'] is not None else 'CHANGED'}\t-\t-\t-\t-")
+        detail.append(f"## 18-attendees / itip-reply\n{json.dumps(res)}\n\n")
+
+
 if __name__ == "__main__":
     which, HARNESS, corpus_dir, out_dir = sys.argv[1:5]
     red = Redact()
-    drv = Google(red) if which == "google" else Graph(red)
+    drv = {"google": Google, "graph": Graph, "icloud": ICloud}[which](red)
     run(drv, corpus_dir, out_dir)
