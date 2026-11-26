@@ -4,8 +4,8 @@ type: phase
 schema_version: 1
 title: "Phase 1: core: server and node on tsnet, device identities, per-user keys, audit log, RBAC"
 project: PRJ-0001
-status: planned           # planned | active | done | abandoned
-since: null               # the commit it started at: yajna phase start
+status: active
+since: 95c7efc514814093bfc0ce7db7adf271ab4c435b
 until: null               # the commit it finished at: yajna phase done
 created: 2026-11-23
 author: agent:claude
@@ -22,7 +22,7 @@ revoked device is refused, and every request appears in a chain a device can ver
 One item per piece of work, ticked when it lands; add items as the plan grows and keep the
 done ones. The project page's *Progress* lists this phase on one line.
 
-- [ ] 1. The tailnet crate from saarthi, copied as sandhi did; server and node each with a tsnet identity
+- [x] 1. The tailnet crate from saarthi, copied as sandhi did; server and node each with a tsnet identity
 - [ ] 2. Enrollment and the device CA: Ed25519 device keys, short-lived certificates, signed requests, revocation
 - [ ] 3. Accounts and the key hierarchy as [[EXP-20261123-bhfzeh]] left it; the sync delegate with consent
 - [ ] 4. The store: encrypted items, channels and cursors (ADR-0003), migrations
