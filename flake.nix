@@ -37,6 +37,36 @@
         let
           yajna = inputs.yajna.packages.${system}.yajna;
 
+          # libtailscale as a static archive for the tailnet crate (ADR-0001), as saarthi and
+          # sandhi build it: `ac7ed43` marks the descriptors it hands out close-on-exec
+          # ([[saarthi/EXP-20261112-rq8kgc]]). Bump the Go attribute with the rev when its
+          # go.mod moves.
+          libtailscale = pkgs.buildGo127Module {
+            pname = "libtailscale";
+            version = "0-unstable-2026-10-30";
+            src = pkgs.fetchFromGitHub {
+              owner = "tailscale";
+              repo = "libtailscale";
+              rev = "ac7ed43af14e19e1c1810ee9f8319872c6beb412";
+              hash = "sha256-K8QGeCyKBcYqBt9O192QpQ4EFRjgiPPE5djD+jyoM3M=";
+            };
+            vendorHash = "sha256-1Y21dNgCNMfVQvZN6k66GHvgdZo8lle5J8B5UES2Ryg=";
+            env.CGO_ENABLED = "1";
+            # A `package main` with cgo exports, built as a c-archive.
+            buildPhase = ''
+              runHook preBuild
+              go build -buildvcs=false -buildmode=c-archive -o libtailscale.a .
+              runHook postBuild
+            '';
+            installPhase = ''
+              runHook preInstall
+              install -Dm644 libtailscale.a $out/lib/libtailscale.a
+              install -Dm644 tailscale.h $out/include/tailscale.h
+              runHook postInstall
+            '';
+            doCheck = false;
+          };
+
           # The cargo workspace; docs/ and notes/ stay out of it.
           src = lib.fileset.toSource {
             root = ./.;
@@ -50,12 +80,14 @@
             inherit src;
             cargoLock.lockFile = ./Cargo.lock;
             cargoBuildFlags = [ "--bin" name ];
+            LIBTAILSCALE_LIB_DIR = "${libtailscale}/lib";
             doCheck = false;
             meta.mainProgram = name;
           };
         in
         {
           packages = rec {
+            inherit libtailscale;
             nitya-server = bin "nitya-server";
             nitya-node = bin "nitya-node";
             default = nitya-server;
@@ -90,6 +122,7 @@
               pkgs.rust-analyzer
               yajna
             ];
+            LIBTAILSCALE_LIB_DIR = "${libtailscale}/lib";
             RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}";
           };
 
@@ -106,6 +139,7 @@
             version = "0.1.0";
             inherit src;
             cargoLock.lockFile = ./Cargo.lock;
+            LIBTAILSCALE_LIB_DIR = "${libtailscale}/lib";
           };
 
           checks.docs = config.packages.docs;

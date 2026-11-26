@@ -7,3 +7,9 @@ edition.workspace = true
 [[bin]]
 name = "nitya-server"
 path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.104"
+nitya-tailnet = { path = "../tailnet" }
+tokio = { version = "1.53.3", features = ["rt-multi-thread", "macros", "io-util"] }
+tokio-stream = "0.1.19"
