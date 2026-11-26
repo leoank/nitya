@@ -1,0 +1,65 @@
+// Devices: enrollment, renewal and who a caller is (ADR-0005, ADR-0011).
+syntax = "proto3";
+
+package nitya.v1;
+
+// What a device certificate says. Its encoded bytes are what the CA signs.
+message CertBody {
+  uint64 serial = 1;
+  string account = 2;
+  // node, app or agent.
+  string kind = 3;
+  // The device's Ed25519 public key, 32 bytes.
+  bytes device_key = 4;
+  // The tailnet's stable node id of the device; requests must come from it.
+  string node_id = 5;
+  // The device's tailnet hostname when it enrolled: a label, not an identity.
+  string hostname = 6;
+  // Unix seconds.
+  int64 not_before = 7;
+  int64 not_after = 8;
+}
+
+message Cert {
+  // An encoded CertBody.
+  bytes body = 1;
+  // The CA's Ed25519 signature over "nitya-cert-v1\0" and body.
+  bytes signature = 2;
+}
+
+service Devices {
+  // Enrolls the calling device with a one-time code; not signed, the device has no
+  // certificate yet.
+  rpc Enroll(EnrollRequest) returns (EnrollResponse);
+  // A new certificate for the calling device; signed, and accepted up to 30 days after
+  // the certificate's end.
+  rpc Renew(RenewRequest) returns (Cert);
+  // Who the server takes the caller to be; signed.
+  rpc WhoAmI(WhoAmIRequest) returns (WhoAmIResponse);
+}
+
+message EnrollRequest {
+  string code = 1;
+  bytes device_key = 2;
+  // The device's signature over "nitya-enroll-v1\0", code and device_key.
+  bytes proof = 3;
+}
+
+message EnrollResponse {
+  Cert cert = 1;
+  // The CA's Ed25519 public key, which the device keeps to check its certificates.
+  bytes ca_key = 2;
+}
+
+message RenewRequest {}
+
+message WhoAmIRequest {}
+
+message WhoAmIResponse {
+  string account = 1;
+  string kind = 2;
+  uint64 serial = 3;
+  string node_id = 4;
+  string hostname = 5;
+  int64 not_after = 6;
+}

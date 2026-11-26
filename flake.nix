@@ -80,6 +80,8 @@
             inherit src;
             cargoLock.lockFile = ./Cargo.lock;
             cargoBuildFlags = [ "--bin" name ];
+            nativeBuildInputs = [ pkgs.protobuf ];
+            PROTOC = "${pkgs.protobuf}/bin/protoc";
             LIBTAILSCALE_LIB_DIR = "${libtailscale}/lib";
             doCheck = false;
             meta.mainProgram = name;
@@ -120,8 +122,10 @@
               pkgs.clippy
               pkgs.rustfmt
               pkgs.rust-analyzer
+              pkgs.protobuf
               yajna
             ];
+            PROTOC = "${pkgs.protobuf}/bin/protoc";
             LIBTAILSCALE_LIB_DIR = "${libtailscale}/lib";
             RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}";
           };
@@ -139,6 +143,8 @@
             version = "0.1.0";
             inherit src;
             cargoLock.lockFile = ./Cargo.lock;
+            nativeBuildInputs = [ pkgs.protobuf ];
+            PROTOC = "${pkgs.protobuf}/bin/protoc";
             LIBTAILSCALE_LIB_DIR = "${libtailscale}/lib";
           };
 

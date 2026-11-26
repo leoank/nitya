@@ -1,12 +1,13 @@
 //! One tailnet identity inside this process (ADR-0001): the server's or a node's, through
-//! libtailscale's C API declared by hand. Connections accepted on the tailnet, connections
-//! dialled through it, and the peer behind an address named from the identity's own status.
+//! libtailscale's C API declared by hand. It serves tonic over connections accepted on the
+//! tailnet (ADR-0011), dials the tailnet for tonic's client, and names the peer behind an
+//! address from the identity's own status.
 //!
 //! Copied from saarthi's `saarthi-tailnet` at saarthi `62e4a6c` (saarthi ADR-0015,
 //! ADR-0048, ADR-0049; [[saarthi/EXP-20261112-rq8kgc]]) and trimmed as sandhi's
-//! `sandhi-tailnet` is (sandhi `72b0907`, its ADR-0002): without tonic's connector and
-//! `Connected`, since nitya's API protocol is not chosen yet, and without the Android log
-//! directory, since nitya's Android client lives in saarthi's app (ADR-0002).
+//! `sandhi-tailnet` is (sandhi `72b0907`, its ADR-0002), without the Android log directory,
+//! since nitya's Android client lives in saarthi's app (ADR-0002); tonic's connector and
+//! `Connected` came back with ADR-0011. The peer also carries its node id (ADR-0011).
 
 mod ffi;
 
@@ -18,10 +19,13 @@ use std::sync::Arc;
 use std::task::{Context, Poll};
 
 use anyhow::{Context as _, Result, bail};
+use hyper_util::rt::TokioIo;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio::net::UnixStream;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
+use tonic::transport::Uri;
+use tonic::transport::server::Connected;
 
 /// What an identity is started with.
 #[derive(Clone, Debug)]
@@ -75,7 +79,8 @@ impl std::fmt::Debug for Tailnet {
     }
 }
 
-/// Where a connection accepted on a tailnet came from.
+/// Where a connection accepted on a tailnet came from; tonic puts it in each request's
+/// extensions.
 #[derive(Clone, Debug)]
 pub struct Remote {
     tailnet: Arc<Tailnet>,
@@ -202,7 +207,8 @@ impl Tailnet {
         self.sd.ips().unwrap_or_default()
     }
 
-    /// Connections accepted on `port`. The stream ends when accepting fails.
+    /// Connections accepted on `port`, for tonic's `serve_with_incoming`. The stream ends
+    /// when accepting fails.
     pub fn incoming(self: &Arc<Self>, port: u16) -> Result<ReceiverStream<io::Result<Conn>>> {
         let listener = self.sd.listen(&format!(":{port}"))?;
         let (tx, rx) = mpsc::channel(16);
@@ -242,6 +248,29 @@ impl Tailnet {
             .map_err(io::Error::other)?
             .map_err(|e| io::Error::other(format!("{e:#}")))?;
         stream(fd)
+    }
+
+    /// A connector for tonic's `Endpoint::connect_with_connector`: dials the endpoint's
+    /// host and port on this tailnet.
+    pub fn connector(
+        self: &Arc<Self>,
+    ) -> impl tower::Service<
+        Uri,
+        Response = TokioIo<UnixStream>,
+        Error = io::Error,
+        Future = impl Future<Output = io::Result<TokioIo<UnixStream>>> + Send,
+    > + Clone
+    + Send
+    + 'static {
+        let me = self.clone();
+        tower::service_fn(move |uri: Uri| {
+            let me = me.clone();
+            async move {
+                let host = uri.host().ok_or_else(|| io::Error::other("no host in the address"))?;
+                let port = uri.port_u16().unwrap_or(80);
+                Ok(TokioIo::new(me.dial(&format!("{host}:{port}")).await?))
+            }
+        })
     }
 
     /// Who holds `addr` on this tailnet, or None when the status does not name it.
@@ -317,6 +346,13 @@ fn peer_in(status: &serde_json::Value, addr: &str) -> Option<Peer> {
 pub struct Conn {
     io: UnixStream,
     remote: Remote,
+}
+
+impl Connected for Conn {
+    type ConnectInfo = Remote;
+    fn connect_info(&self) -> Remote {
+        self.remote.clone()
+    }
 }
 
 impl Conn {

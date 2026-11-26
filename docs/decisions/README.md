@@ -15,6 +15,7 @@ and never renumbered. A decision that changes an earlier one supersedes it; both
 | [ADR-0008](ADR-0008-poll-respondents-reach-a-cloudflare-worker-not-nitya.md) | Poll respondents reach a Cloudflare Worker that holds only poll data, never nitya | accepted |
 | [ADR-0009](ADR-0009-provider-oauth-apps-are-a-terranix-stack-here-their-secrets-agenix-in-neusis.md) | Provider OAuth apps are a terranix stack in this repo; their secrets are agenix files in neusis | accepted |
 | [ADR-0010](ADR-0010-revoking-a-device-rotates-the-data-keys-and-the-append-key-not-only-the-user-key.md) | Revoking a device rotates the data keys and the append key, not only the user key | proposed |
+| [ADR-0011](ADR-0011-grpc-api-one-time-enrollment-codes-and-nitya-s-own-device-certificates-bound-to-the-tailnet-node-id.md) | The API is gRPC; devices enroll with a one-time code and get nitya's own short-lived certificates, bound to their tailnet node id | accepted |
 
 Each record:
 
