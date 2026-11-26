@@ -1,0 +1,21 @@
+[package]
+name = "key-hierarchy"
+description = "Spike for EXP-20261123-bhfzeh: ADR-0005's key hierarchy, sync delegate, revocation and recovery, with ADR-0007's signed hash-chained log"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# A throwaway spike, outside nitya's workspace.
+[workspace]
+
+[dependencies]
+age = "0.11"
+argon2 = "0.5"
+chacha20poly1305 = "0.10"
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+rand = "0.8"
+sha2 = "0.10"
+zeroize = "1"
+
+[profile.release]
+debug = false
