@@ -4,7 +4,7 @@ type: experiment
 schema_version: 1
 title: Do refresh tokens for a personal, unverified Google app (Gmail and Calendar scopes) and an Entra app for Microsoft 365 stay valid on a headless server for 30 days without re-consent?
 project: PRJ-0001
-status: planned           # planned | active | paused | concluded | abandoned
+status: active            # planned | active | paused | concluded | abandoned
 outcome: null             # null | positive | negative | inconclusive | infra
 influenced_by: []
 created: 2026-11-23
@@ -57,6 +57,8 @@ If 1 fails, nitya needs a verified Google app or IMAP with app passwords for Gma
 ## Runs
 One line per run after its link, what was tried and what it showed; `yajna validate`
 rejects a bare link here. Metric runs also land in results.tsv.
+- [[RUN-20261126-f98mes]] the 30-day probe on ghost001 every 6 hours: Google, Microsoft
+  (rotated and bootstrap chains) and iCloud; running
 
 ## Conclusion
 Written once, by a human, when status becomes `concluded`.
