@@ -23,7 +23,7 @@ One item per piece of work, ticked when it lands; add items as the plan grows an
 done ones. The project page's *Progress* lists this phase on one line.
 
 - [x] 1. The tailnet crate from saarthi, copied as sandhi did; server and node each with a tsnet identity
-- [ ] 2. Enrollment and the device CA: Ed25519 device keys, short-lived certificates, signed requests, revocation
+- [x] 2. Enrollment and the device CA: Ed25519 device keys, short-lived certificates, signed requests, revocation ([[EXP-20261126-hvzed5]], ADR-0011); the app's enrollment, keys in a TPM or the Android Keystore, and revoking from a device come later
 - [ ] 3. Accounts and the key hierarchy as [[EXP-20261123-bhfzeh]] left it; the sync delegate with consent
 - [ ] 4. The store: encrypted items, channels and cursors (ADR-0003), migrations
 - [ ] 5. Cedar policies and schema for users, devices and agents, validated in CI
