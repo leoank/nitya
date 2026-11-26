@@ -1,0 +1,4 @@
+{"call": "a-first", "host": "nitya-idtest-node", "login": "tag:neusis", "dns_name": "nitya-idtest-node.<tailnet>", "node_id": "id-1", "node_key": "key-1", "addr": "addr-1"}
+{"call": "a-restart", "host": "nitya-idtest-node", "login": "tag:neusis", "dns_name": "nitya-idtest-node.<tailnet>", "node_id": "id-1", "node_key": "key-2", "addr": "addr-1"}
+{"call": "b-fresh", "host": "nitya-idtest-node", "login": "tag:neusis", "dns_name": "nitya-idtest-node-1.<tailnet>", "node_id": "id-2", "node_key": "key-3", "addr": "addr-2"}
+{"call": "a-after-b", "host": "nitya-idtest-node", "login": "tag:neusis", "dns_name": "nitya-idtest-node.<tailnet>", "node_id": "id-1", "node_key": "key-4", "addr": "addr-1"}

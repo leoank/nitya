@@ -1,0 +1,12 @@
+{
+ "p1_id_and_key_given": true,
+ "p2_restart_same_id": true,
+ "p2_restart_same_key": false,
+ "p2_restart_same_addr": true,
+ "p3_fresh_join_new_id": true,
+ "p3_fresh_join_new_key": true,
+ "p3_fresh_join_same_host": true,
+ "p3_fresh_join_same_dns": false,
+ "a_after_b_same_id": true,
+ "a_after_b_same_dns": true
+}

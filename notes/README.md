@@ -95,6 +95,7 @@ rejects a bare link here. Newest last.
 - [[EXP-20261123-bhfzeh]] does the per-user key hierarchy with a sync delegate allow offline work, full audit and clean revocation; concluded positive (draft): yes, if revocation also rotates the DEKs (ADR-0010, proposed)
 - [[EXP-20261123-bhfz49]] do Google and Microsoft refresh tokens survive 30 days on a headless server; active: the probe is built, waiting on its deploy to ghost001
 - [[EXP-20261123-bhfz7e]] can nitya spawn a saarthi session with a grant and execute its plan only after phone approval; paused until the owner's new saarthi APIs exist
+- [[EXP-20261126-hvzed5]] what does the tailnet tell the server about a caller that a device certificate can bind to; concluded positive (draft): the node id, stable across restarts and new for a fresh join; not the node key or the hostname (ADR-0011)
 
 ## Decisions
 Settled in the interview of 2026-11-22/23 ([[AGS-20261123-bhdnxc]]); each record in
