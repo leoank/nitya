@@ -1,0 +1,16 @@
+[package]
+name = "tailnet-identity"
+description = "Spike for EXP-20261126-hvzed5: what the server learns about a caller from its tailnet connection"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# A throwaway spike, outside nitya's workspace.
+[workspace]
+
+[dependencies]
+anyhow = "1"
+nitya-tailnet = { path = "../../crates/tailnet" }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-util"] }
+tokio-stream = "0.1"

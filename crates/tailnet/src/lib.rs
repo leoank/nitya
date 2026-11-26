@@ -100,6 +100,12 @@ pub struct Peer {
     pub host: String,
     /// The owner's login, or the tags for a tagged machine.
     pub login: String,
+    /// The tailnet's stable id of the node (`ID` in the status), empty if not given.
+    pub node_id: String,
+    /// The node's WireGuard key (`PublicKey`), empty if not given.
+    pub node_key: String,
+    /// The node's MagicDNS name, empty if not given.
+    pub dns_name: String,
 }
 
 impl std::fmt::Display for Peer {
@@ -297,9 +303,13 @@ fn peer_in(status: &serde_json::Value, addr: &str) -> Option<Peer> {
     } else {
         tags.join(",")
     };
+    let field = |k: &str| peer[k].as_str().unwrap_or_default().to_string();
     Some(Peer {
-        host: peer["HostName"].as_str().unwrap_or_default().to_string(),
+        host: field("HostName"),
         login,
+        node_id: field("ID"),
+        node_key: field("PublicKey"),
+        dns_name: field("DNSName"),
     })
 }
 
@@ -342,7 +352,8 @@ mod tests {
     fn status() -> serde_json::Value {
         json!({
             "Peer": {
-                "nodekey:a": {"HostName": "rogue", "TailscaleIPs": ["100.1.2.3", "fd7a::1"], "UserID": 7, "Tags": null},
+                "nodekey:a": {"HostName": "rogue", "TailscaleIPs": ["100.1.2.3", "fd7a::1"], "UserID": 7, "Tags": null,
+                              "ID": "nA1", "PublicKey": "nodekey:a", "DNSName": "rogue.example.ts.net."},
                 "nodekey:b": {"HostName": "ci", "TailscaleIPs": ["100.9.9.9"], "UserID": 8, "Tags": ["tag:ci", "tag:x"]}
             },
             "User": {"7": {"LoginName": "me@github"}, "8": {"LoginName": "tagged-devices"}}
@@ -351,7 +362,13 @@ mod tests {
 
     #[test]
     fn a_peer_is_named_by_its_address_with_or_without_a_port() {
-        let want = Some(Peer { host: "rogue".into(), login: "me@github".into() });
+        let want = Some(Peer {
+            host: "rogue".into(),
+            login: "me@github".into(),
+            node_id: "nA1".into(),
+            node_key: "nodekey:a".into(),
+            dns_name: "rogue.example.ts.net.".into(),
+        });
         assert_eq!(peer_in(&status(), "100.1.2.3"), want);
         assert_eq!(peer_in(&status(), "100.1.2.3:52011"), want);
         assert_eq!(peer_in(&status(), "[fd7a::1]:7700"), want);
