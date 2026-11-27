@@ -1,7 +1,8 @@
 # Where it stands
 
-nitya is in **phase 1: the core**. The server and the node run on a tailnet with the
-security everything else will rest on. There are no calendars, mail or agents yet.
+nitya is at the end of **phase 1: the core**. The server runs on its own machine and a
+node on the owner's, on a tailnet, with the security everything else will rest on. There
+are no calendars, mail or agents yet.
 Phase 0, the design and its spikes, is done except for one experiment that takes a month.
 
 What runs today ([Using nitya](using/running.md)):
@@ -33,6 +34,5 @@ without reading what you did not delegate, provided revocation also rotates the 
 ([[EXP-20261123-bhfzeh]]). Whether the provider tokens last a month on a headless server
 is being measured ([[EXP-20261123-bhfz49]]).
 
-Next: nitya running on its own server, ghost001, through those modules. After that,
-phase 2 brings calendar sync and tasks. The phases are on the
+Next: phase 2, calendar sync and tasks. The phases are on the
 [project page](https://github.com/leoank/nitya/blob/main/notes/README.md).
