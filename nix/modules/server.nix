@@ -74,6 +74,12 @@ in
       '';
     };
 
+    pollSeconds = lib.mkOption {
+      type = lib.types.ints.positive;
+      default = 60;
+      description = "How often each channel is synced (ADR-0017); `nitya-node sync now` syncs at once.";
+    };
+
     user = lib.mkOption {
       type = lib.types.str;
       default = "nitya";
@@ -114,6 +120,8 @@ in
             cfg.hostname
             "--port"
             (toString cfg.port)
+            "--poll-secs"
+            (toString cfg.pollSeconds)
           ]
           ++ lib.concatMap (c: [ c.flag "%d/${c.name}" ]) creds
           ++ map lib.escapeShellArg cfg.extraArgs

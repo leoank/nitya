@@ -13,9 +13,11 @@
 
 mod audit;
 mod ca;
+mod channels;
 mod devices;
 mod keys;
 mod policy;
+mod sync;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -23,6 +25,7 @@ use std::sync::Arc;
 use anyhow::{Context, Result, bail};
 use nitya_device as dev;
 use nitya_proto::v1::audit_server::AuditServer;
+use nitya_proto::v1::channels_server::ChannelsServer;
 use nitya_proto::v1::devices_server::DevicesServer;
 use nitya_proto::v1::keys_server::KeysServer;
 use nitya_tailnet::{AuthKey, Options, Tailnet};
@@ -30,7 +33,7 @@ use nitya_tailnet::{AuthKey, Options, Tailnet};
 /// The port nitya's server listens on, on its tailnet identity.
 pub const PORT: u16 = 7300;
 
-const USAGE: &str = "usage: nitya-server --state-dir DIR [--hostname H] [--authkey-file F] [--port P] [--ephemeral] [--delegate-key F]\n\
+const USAGE: &str = "usage: nitya-server --state-dir DIR [--hostname H] [--authkey-file F] [--port P] [--ephemeral] [--delegate-key F] [--poll-secs N]\n\
        nitya-server --state-dir DIR enroll-code --account A [--kind node|app|agent] [--minutes M]\n\
        nitya-server --state-dir DIR devices\n\
        nitya-server --state-dir DIR revoke SERIAL";
@@ -41,13 +44,14 @@ state directory. The admin commands work while the server runs.
 
 Usage:
   nitya-server --state-dir DIR [--hostname H] [--authkey-file F] [--port P] [--ephemeral]
-               [--delegate-key F]
+               [--delegate-key F] [--poll-secs N]
   nitya-server --state-dir DIR enroll-code --account A [--kind node|app|agent] [--minutes M]
   nitya-server --state-dir DIR devices
   nitya-server --state-dir DIR revoke SERIAL
 
 Commands:
-  (none)        serve the gRPC API on the tailnet: Devices, Keys, Audit
+  (none)        serve the gRPC API on the tailnet: Devices, Keys, Audit, Channels; and
+                sync each channel the owner consented to, every --poll-secs
   enroll-code   print a one-time code with which one device enrolls into account A as a
                 node, app or agent (default node), valid M minutes (default 15)
   devices       list each device's latest certificate: account, kind, hostname, tailnet
@@ -65,11 +69,13 @@ Options:
   --ephemeral         join as an ephemeral node
   --delegate-key F    the sync-delegate key, an age identity file (as age-keygen writes
                       it); without it the server makes delegate.key in DIR
+  --poll-secs N       how often each channel is synced (default 60); `nitya-node sync now`
+                      syncs at once
   --help, --version
 ";
 
 enum Command {
-    Serve { hostname: String, authkey: Option<PathBuf>, port: u16, ephemeral: bool, delegate: Option<PathBuf> },
+    Serve { hostname: String, authkey: Option<PathBuf>, port: u16, ephemeral: bool, delegate: Option<PathBuf>, poll: i64 },
     EnrollCode { account: String, kind: String, minutes: i64 },
     Devices,
     Revoke(u64),
@@ -79,6 +85,7 @@ fn args() -> Result<Option<(PathBuf, Command)>> {
     let mut a = std::env::args().skip(1);
     let (mut dir, mut hostname, mut authkey, mut port, mut ephemeral) = (None, "nitya".to_string(), None, PORT, false);
     let mut delegate = None;
+    let mut poll = 60;
     let (mut account, mut kind, mut minutes) = (None, "node".to_string(), 15);
     let mut sub: Option<String> = None;
     let mut serial = None;
@@ -91,6 +98,7 @@ fn args() -> Result<Option<(PathBuf, Command)>> {
             "--port" => port = val()?.parse().context("--port")?,
             "--ephemeral" => ephemeral = true,
             "--delegate-key" => delegate = Some(PathBuf::from(val()?)),
+            "--poll-secs" => poll = val()?.parse().context("--poll-secs")?,
             "--account" => account = Some(val()?),
             "--kind" => kind = val()?,
             "--minutes" => minutes = val()?.parse().context("--minutes")?,
@@ -106,7 +114,7 @@ fn args() -> Result<Option<(PathBuf, Command)>> {
     }
     let dir = dir.with_context(|| format!("--state-dir is required\n{USAGE}"))?;
     let cmd = match sub.as_deref() {
-        None => Command::Serve { hostname, authkey, port, ephemeral, delegate },
+        None => Command::Serve { hostname, authkey, port, ephemeral, delegate, poll },
         Some("enroll-code") => Command::EnrollCode { account: account.context("enroll-code needs --account")?, kind, minutes },
         Some("devices") => Command::Devices,
         _ => Command::Revoke(serial.context("revoke needs a certificate's serial (see `devices`)")?),
@@ -151,7 +159,7 @@ async fn main() -> Result<()> {
             }
             Ok(())
         }
-        Command::Serve { hostname, authkey, port, ephemeral, delegate } => {
+        Command::Serve { hostname, authkey, port, ephemeral, delegate, poll } => {
             let tailnet = Tailnet::start(Options {
                 name: "nitya".into(),
                 dir: dir.join("tailnet"),
@@ -171,10 +179,15 @@ async fn main() -> Result<()> {
             let policy = Arc::new(policy::Policy::new(&[])?);
             eprintln!("nitya-server: on tailnet as {hostname} ({}), port {port}", tailnet.ips());
             let ca = Arc::new(ca);
+            let delegate_key = delegate.public();
+            // No provider drivers yet: they come with phase 2's items 2 to 4.
+            let engine = Arc::new(sync::Engine::new(ca.clone(), Arc::new(delegate), Default::default(), poll));
+            engine.clone().spawn();
             tonic::transport::Server::builder()
                 .add_service(DevicesServer::new(devices::Service { ca: ca.clone() }))
-                .add_service(KeysServer::new(keys::Service { ca: ca.clone(), delegate_key: delegate.public(), policy: policy.clone() }))
-                .add_service(AuditServer::new(audit::Service { ca, policy }))
+                .add_service(KeysServer::new(keys::Service { ca: ca.clone(), delegate_key, policy: policy.clone() }))
+                .add_service(AuditServer::new(audit::Service { ca: ca.clone(), policy: policy.clone() }))
+                .add_service(ChannelsServer::new(channels::Service { ca, policy, engine }))
                 .serve_with_incoming(tailnet.incoming(port)?)
                 .await
                 .context("serving on the tailnet")

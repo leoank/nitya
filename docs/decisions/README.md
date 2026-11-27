@@ -21,6 +21,7 @@ and never renumbered. A decision that changes an earlier one supersedes it; both
 | [ADR-0014](ADR-0014-devices-act-as-their-user-agents-hold-only-grants-each-grant-a-linked-cedar-template.md) | Devices act as their user; agents hold only grants, each grant a linked Cedar template | accepted |
 | [ADR-0015](ADR-0015-one-audit-chain-per-account-checked-by-its-devices-before-every-keys-command.md) | One audit chain per account, checked by its devices before every keys command | accepted |
 | [ADR-0016](ADR-0016-the-server-is-a-nixos-service-with-agenix-credentials-the-node-a-home-manager-wrapper-with-an-hourly-audit-check.md) | The server is a NixOS service fed agenix secrets as credentials; the node is a home-manager wrapper with an hourly audit check | accepted |
+| [ADR-0017](ADR-0017-the-channel-engine-syncs-a-channel-only-with-consent-every-minute-with-a-sync-now.md) | The channel engine syncs a channel only with consent, every minute, with a sync-now | accepted |
 
 Each record:
 

@@ -22,6 +22,7 @@ fn resource_name(r: &Resource) -> String {
     match r {
         Resource::KeySet { .. } => "keys".into(),
         Resource::AuditLog { .. } => "audit".into(),
+        Resource::Channels { .. } => "channels".into(),
         Resource::Plan { id, .. } => format!("plan:{id}"),
         Resource::Source { id, .. } => format!("source:{id}"),
         Resource::Item { id, source, .. } => format!("item:{source}/{id}"),

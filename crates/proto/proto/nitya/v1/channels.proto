@@ -1,0 +1,48 @@
+// Channels: the account's provider channels and their sync (ADR-0003, ADR-0017).
+syntax = "proto3";
+
+package nitya.v1;
+
+service Channels {
+  // The caller's account's channels and where each stands; signed.
+  rpc List(ListChannelsRequest) returns (ListChannelsResponse);
+  // Syncs the caller's channels now (one, or all with channel_id 0) and says what each
+  // run did; signed.
+  rpc SyncNow(SyncNowRequest) returns (SyncNowResponse);
+}
+
+message ListChannelsRequest {}
+
+message ChannelInfo {
+  int64 id = 1;
+  string provider = 2;
+  string class = 3;
+  string name = 4;
+  // new, full_sync, incremental, waiting_for_consent, needs_auth, failed, no_driver.
+  string stage = 5;
+  // Unix seconds; 0 when it never synced.
+  int64 last_sync = 6;
+  string last_error = 7;
+  int64 next_attempt = 8;
+}
+
+message ListChannelsResponse {
+  repeated ChannelInfo channels = 1;
+}
+
+message SyncNowRequest {
+  int64 channel_id = 1;
+}
+
+message SyncReport {
+  int64 channel_id = 1;
+  string stage = 2;
+  bool full = 3;
+  uint32 upserts = 4;
+  uint32 deletes = 5;
+  string error = 6;
+}
+
+message SyncNowResponse {
+  repeated SyncReport reports = 1;
+}

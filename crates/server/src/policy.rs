@@ -38,6 +38,7 @@ impl Principal {
 pub enum Resource {
     KeySet { user: String },
     AuditLog { user: String },
+    Channels { user: String },
     Plan { id: String, user: String },
     Source { id: String, user: String, class: String },
     Item { id: String, source: String, user: String, class: String },
@@ -137,6 +138,12 @@ impl Policy {
                 let l = uid("AuditLog", user)?;
                 ents.extend([entity(u.clone(), &[], &[])?, entity(l.clone(), &[], &[u])?]);
                 l
+            }
+            Resource::Channels { user } => {
+                let u = uid("User", user)?;
+                let c = uid("Channels", user)?;
+                ents.extend([entity(u.clone(), &[], &[])?, entity(c.clone(), &[], &[u])?]);
+                c
             }
             Resource::Plan { id, user } => {
                 let u = uid("User", user)?;
@@ -260,6 +267,9 @@ mod tests {
         // Nor reads the audit log: no policy permits it.
         assert!(!p.decide(&agent("job-1"), "audit.read", &Resource::AuditLog { user: "ank".into() }, false).unwrap().allowed);
         assert!(p.decide(&device("ank"), "audit.read", &Resource::AuditLog { user: "ank".into() }, false).unwrap().allowed);
+        // Nor syncs channels; a device does.
+        assert!(!p.decide(&agent("job-1"), "channels.sync", &Resource::Channels { user: "ank".into() }, false).unwrap().allowed);
+        assert!(p.decide(&device("ank"), "channels.sync", &Resource::Channels { user: "ank".into() }, false).unwrap().allowed);
     }
 
     #[test]

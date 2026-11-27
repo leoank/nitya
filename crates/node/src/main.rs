@@ -17,6 +17,9 @@
 //!                                 catches edits to older entries' details), show what
 //!                                 is new, hand back the new head
 //!
+//!   channels                      the account's provider channels and where each stands
+//!   sync now [ID]                 sync channel ID (or every channel) at once
+//!
 //! DIR holds the tailnet identity (tailnet/), the device key (device.key), its wrap key
 //! (wrap.key), its certificate (device.cert), the server's CA key (ca.pub), the server's
 //! audit key as first seen (audit.pub) and the last checkpoint (audit.checkpoint). Calls
@@ -33,14 +36,15 @@ use ed25519_dalek::SigningKey;
 use nitya_device as dev;
 use nitya_keys::{CLASSES, Identity, Unlocked};
 use nitya_proto::v1::audit_client::AuditClient;
+use nitya_proto::v1::channels_client::ChannelsClient;
 use nitya_proto::v1::devices_client::DevicesClient;
 use nitya_proto::v1::keys_client::KeysClient;
-use nitya_proto::v1::{Cert, CertBody, Checkpoint, EnrollRequest, GetKeysRequest, GetKeysResponse, PutKeysRequest, RenewRequest, SinceRequest, WhoAmIRequest};
+use nitya_proto::v1::{Cert, CertBody, Checkpoint, EnrollRequest, GetKeysRequest, GetKeysResponse, PutKeysRequest, ListChannelsRequest, RenewRequest, SinceRequest, SyncNowRequest, WhoAmIRequest};
 use nitya_tailnet::{AuthKey, Options, Tailnet};
 use prost::Message;
 use tonic::transport::Channel;
 
-const USAGE: &str = "usage: nitya-node --state-dir DIR --hostname NAME [--authkey-file F] [--server HOST:PORT] [--ephemeral] enroll CODE | whoami | audit verify [--all] | keys (fingerprint | init | status | approve SERIAL FPR | recover | consent CLASS | withdraw CLASS)";
+const USAGE: &str = "usage: nitya-node --state-dir DIR --hostname NAME [--authkey-file F] [--server HOST:PORT] [--ephemeral] enroll CODE | whoami | audit verify [--all] | channels | sync now [ID] | keys (fingerprint | init | status | approve SERIAL FPR | recover | consent CLASS | withdraw CLASS)";
 
 const HELP: &str = "\
 nitya-node: nitya's node on this machine, on its own tailnet identity, with a device key
@@ -56,6 +60,9 @@ Commands:
   audit verify [--all]         check the account's audit log from this device's checkpoint
                                (--all: from the first entry), print the new entries, and
                                hand the server the head this device verified
+  channels                     the account's provider channels: stage, last sync, last error
+  sync now [ID]                sync channel ID, or every channel of the account, now rather
+                               than at the next poll; prints what each run did
   keys fingerprint             this device's wrap key fingerprint, to compare when another
                                device approves it; needs no server
   keys init                    make the account's keys on its first device; reads the
@@ -86,6 +93,8 @@ enum Command {
     Enroll(String),
     WhoAmI,
     AuditVerify { all: bool },
+    Channels,
+    SyncNow(i64),
     Keys(Vec<String>),
 }
 
@@ -119,6 +128,14 @@ fn args() -> Result<Option<Args>> {
             "enroll" if cmd.is_none() => cmd = Some(Command::Enroll(val()?)),
             "whoami" if cmd.is_none() => cmd = Some(Command::WhoAmI),
             "keys" if cmd.is_none() => cmd = Some(Command::Keys(a.by_ref().collect())),
+            "channels" if cmd.is_none() => cmd = Some(Command::Channels),
+            "sync" if cmd.is_none() => {
+                if val()? != "now" {
+                    bail!("{USAGE}");
+                }
+                cmd = Some(Command::SyncNow(0))
+            }
+            id if matches!(cmd, Some(Command::SyncNow(0))) => cmd = Some(Command::SyncNow(id.parse().context("a channel id is a number (see `channels`)")?)),
             "audit" if cmd.is_none() => {
                 if val()? != "verify" {
                     bail!("{USAGE}");
@@ -420,6 +437,37 @@ async fn main() -> Result<()> {
             dev::sign_request(&mut req, &device, &cert, "nitya.v1.Devices/WhoAmI", dev::now());
             let w = client.who_am_i(req).await.context("asking the server who this node is")?.into_inner();
             println!("{} of {}: {} on node {}, serial {}, until {}", w.kind, w.account, w.hostname, w.node_id, w.serial, w.not_after);
+        }
+        Command::Channels => {
+            let (cert, _) = current_cert(&mut client, &a.dir, &device).await?;
+            let mut req = tonic::Request::new(ListChannelsRequest {});
+            dev::sign_request(&mut req, &device, &cert, "nitya.v1.Channels/List", dev::now());
+            let r = ChannelsClient::new(channel).list(req).await.context("listing the channels")?.into_inner();
+            if r.channels.is_empty() {
+                println!("no channels yet");
+            }
+            for c in r.channels {
+                let last = if c.last_sync == 0 { "never synced".to_string() } else { format!("synced {}s ago", dev::now() - c.last_sync) };
+                let err = if c.last_error.is_empty() { String::new() } else { format!("\t{}", c.last_error) };
+                println!("{}\t{}\t{}\t{}\t{}\t{last}{err}", c.id, c.provider, c.class, c.name, c.stage);
+            }
+        }
+        Command::SyncNow(id) => {
+            let (cert, _) = current_cert(&mut client, &a.dir, &device).await?;
+            let mut req = tonic::Request::new(SyncNowRequest { channel_id: id });
+            dev::sign_request(&mut req, &device, &cert, "nitya.v1.Channels/SyncNow", dev::now());
+            let r = ChannelsClient::new(channel).sync_now(req).await.context("syncing")?.into_inner();
+            if r.reports.is_empty() {
+                println!("no channels to sync");
+            }
+            for s in r.reports {
+                let what = if s.error.is_empty() {
+                    format!("{} sync: {} upserted, {} deleted", if s.full { "full" } else { "incremental" }, s.upserts, s.deletes)
+                } else {
+                    s.error
+                };
+                println!("{}\t{}\t{what}", s.channel_id, s.stage);
+            }
         }
         Command::AuditVerify { all } => {
             let (cert, body) = current_cert(&mut client, &a.dir, &device).await?;

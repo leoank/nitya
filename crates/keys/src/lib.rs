@@ -402,6 +402,12 @@ impl Delegate {
         self.id.to_public().to_string()
     }
 
+    /// Whether the owner consented to `class` as it is now: the delegate holds its current
+    /// DEK (consent given before a rotation is renewed by the rotation itself).
+    pub fn consented(&self, keys: &KeySet, class: &str) -> bool {
+        latest(&keys.deks, class).is_some_and(|v| keys.delegated.iter().any(|k| k.class == class && k.version == v))
+    }
+
     fn dek(&self, keys: &KeySet, class: &str, version: u32) -> Result<Key> {
         let k = keys
             .delegated
@@ -522,8 +528,10 @@ mod tests {
         // A device opens both.
         assert_eq!(&ua.open_item("mail", "m1", &mail).unwrap()[..], b"secret");
         assert_eq!(&ua.open_item("calendar", "e1", &cal).unwrap()[..], b"standup");
+        assert!(d.consented(&keys, "calendar") && !d.consented(&keys, "mail"));
         // Withdrawn consent: the delegate seals to the append key and reads nothing.
         ua.withdraw("calendar");
+        assert!(!d.consented(&ua.keys, "calendar"));
         let after = d.seal_item("ank", &ua.keys, "calendar", "e2", b"x").unwrap();
         assert!(!after.item_key.is_empty());
         assert!(d.open_item("ank", &ua.keys, "calendar", "e1", &cal).is_err());

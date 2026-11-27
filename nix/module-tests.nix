@@ -35,6 +35,7 @@ let
     delegateKeyFile = "/run/agenix/dk";
     hostname = "nitya-test";
     port = 7301;
+    pollSeconds = 300;
   };
   svc = c: c.systemd.services.nitya-server;
   exec = c: builtins.unsafeDiscardStringContext (svc c).serviceConfig.ExecStart;
@@ -43,7 +44,7 @@ let
   serverTests = {
     test-server-defaults = {
       expr = {
-        cmd = lib.hasSuffix "/bin/nitya-server --state-dir /var/lib/nitya --hostname nitya --port 7300" (exec bare);
+        cmd = lib.hasSuffix "/bin/nitya-server --state-dir /var/lib/nitya --hostname nitya --port 7300 --poll-secs 60" (exec bare);
         noCreds = (svc bare).serviceConfig.LoadCredential == [ ];
         user = (svc bare).serviceConfig.User;
         state = (svc bare).serviceConfig.StateDirectory;
@@ -68,7 +69,7 @@ let
     test-server-secrets-are-credentials = {
       expr = {
         creds = (svc full).serviceConfig.LoadCredential;
-        cmd = lib.hasSuffix "--hostname nitya-test --port 7301 --authkey-file %d/authkey --delegate-key %d/delegate-key" (exec full);
+        cmd = lib.hasSuffix "--hostname nitya-test --port 7301 --poll-secs 300 --authkey-file %d/authkey --delegate-key %d/delegate-key" (exec full);
         # The secrets' own paths never reach the command line.
         hidden = !(lib.hasInfix "/run/agenix" (exec full));
       };

@@ -13,6 +13,7 @@
 - [Your keys](using/keys.md)
 - [Who may do what](using/access.md)
 - [The audit log](using/audit.md)
+- [Channels and sync](using/sync.md)
 
 # Deployment
 

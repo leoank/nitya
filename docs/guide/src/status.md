@@ -1,8 +1,9 @@
 # Where it stands
 
-nitya is at the end of **phase 1: the core**. The server runs on its own machine and a
-node on the owner's, on a tailnet, with the security everything else will rest on. There
-are no calendars, mail or agents yet.
+nitya is in **phase 2: calendar sync and tasks**. Phase 1 built the core: the server
+runs on its own machine and a node on the owner's, on a tailnet, with the security
+everything else rests on. The sync engine is in place; no calendar can be connected yet,
+and there is no mail and there are no agents.
 Phase 0, the design and its spikes, is done except for one experiment that takes a month.
 
 What runs today ([Using nitya](using/running.md)):
@@ -18,6 +19,9 @@ What runs today ([Using nitya](using/running.md)):
   revocation, and delegated to the server class by class ([Your keys](using/keys.md)).
 - **The store**: one SQLite database holding accounts, certificates, key sets, the audit
   log, and the channels and sealed items that sync will fill.
+- **The sync engine**: channels synced every minute while you consent, or at once with
+  `nitya-node sync now` ([Channels and sync](using/sync.md)); the providers' drivers come
+  next.
 - **Policies**: Cedar decides every request; your devices act as you, agents only by
   grant ([Who may do what](using/access.md)).
 - **The audit log**: every decision signed and chained, and checked by your devices
@@ -34,5 +38,5 @@ without reading what you did not delegate, provided revocation also rotates the 
 ([[EXP-20261123-bhfzeh]]). Whether the provider tokens last a month on a headless server
 is being measured ([[EXP-20261123-bhfz49]]).
 
-Next: phase 2, calendar sync and tasks. The phases are on the
+Next: the Google Calendar driver, then Microsoft Graph and CalDAV, two-way. The phases are on the
 [project page](https://github.com/leoank/nitya/blob/main/notes/README.md).

@@ -85,6 +85,28 @@ const MIGRATIONS: &[&str] = &[
         PRIMARY KEY (chain, device_key)
     );
     ",
+    // 4: the channel engine (ADR-0017): a channel's sealed credential, its retry state and
+    // the lease of the run in progress; deleted items kept as tombstones; one row per sync
+    // run that changed something or failed.
+    "
+    ALTER TABLE channels ADD COLUMN credential BLOB;
+    ALTER TABLE channels ADD COLUMN failures INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE channels ADD COLUMN next_attempt INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE channels ADD COLUMN last_sync INTEGER;
+    ALTER TABLE channels ADD COLUMN last_error TEXT;
+    ALTER TABLE channels ADD COLUMN running_since INTEGER;
+    ALTER TABLE items ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0;
+    CREATE TABLE sync_runs (
+        id INTEGER PRIMARY KEY,
+        channel_id INTEGER NOT NULL REFERENCES channels(id),
+        started INTEGER NOT NULL,
+        finished INTEGER NOT NULL,
+        full INTEGER NOT NULL,
+        upserts INTEGER NOT NULL,
+        deletes INTEGER NOT NULL,
+        error TEXT
+    );
+    ",
 ];
 
 pub struct Store {
@@ -108,6 +130,54 @@ pub struct Channel {
     pub name: String,
     pub cursor: Option<Vec<u8>>,
     pub stage: String,
+    /// The driver's credential, sealed under the account's `tokens` key.
+    pub credential: Option<Vec<u8>>,
+    pub failures: i64,
+    pub next_attempt: i64,
+    pub last_sync: Option<i64>,
+    pub last_error: Option<String>,
+}
+
+/// How a channel's run ended, written back when its lease is released.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Outcome {
+    pub stage: String,
+    pub failures: i64,
+    pub next_attempt: i64,
+    pub last_sync: Option<i64>,
+    pub last_error: Option<String>,
+}
+
+/// One sync run worth keeping: it changed something, or failed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Run {
+    pub channel_id: i64,
+    pub started: i64,
+    pub finished: i64,
+    pub full: bool,
+    pub upserts: i64,
+    pub deletes: i64,
+    pub error: Option<String>,
+}
+
+const CHANNEL_COLUMNS: &str =
+    "c.id, a.name, provider, class, c.name, cursor, stage, credential, failures, next_attempt, last_sync, last_error";
+
+fn channel_row(r: &rusqlite::Row) -> rusqlite::Result<Channel> {
+    Ok(Channel {
+        id: r.get(0)?,
+        account: r.get(1)?,
+        provider: r.get(2)?,
+        class: r.get(3)?,
+        name: r.get(4)?,
+        cursor: r.get(5)?,
+        stage: r.get(6)?,
+        credential: r.get(7)?,
+        failures: r.get(8)?,
+        next_attempt: r.get(9)?,
+        last_sync: r.get(10)?,
+        last_error: r.get(11)?,
+    })
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -119,6 +189,8 @@ pub struct Item {
     pub key_version: u32,
     pub sealed: Vec<u8>,
     pub updated: i64,
+    /// Deleted at the provider: kept as a tombstone, its sealed bytes emptied.
+    pub deleted: bool,
 }
 
 /// An account's key set as the store keeps it: encoded, with its revision.
@@ -330,21 +402,65 @@ impl Store {
     }
 
     pub fn channels(&self, account: &str) -> Result<Vec<Channel>> {
-        let mut q = self.db.prepare(
-            "SELECT c.id, a.name, provider, class, c.name, cursor, stage FROM channels c JOIN accounts a ON a.id = account_id
-             WHERE a.name = ?1 ORDER BY c.id",
+        let mut q = self.db.prepare(&format!(
+            "SELECT {CHANNEL_COLUMNS} FROM channels c JOIN accounts a ON a.id = account_id WHERE a.name = ?1 ORDER BY c.id"
+        ))?;
+        let rows = q.query_map([account], channel_row)?.collect::<Result<_, _>>()?;
+        Ok(rows)
+    }
+
+    /// Every channel of every account.
+    pub fn all_channels(&self) -> Result<Vec<Channel>> {
+        let mut q = self.db.prepare(&format!("SELECT {CHANNEL_COLUMNS} FROM channels c JOIN accounts a ON a.id = account_id ORDER BY c.id"))?;
+        let rows = q.query_map([], channel_row)?.collect::<Result<_, _>>()?;
+        Ok(rows)
+    }
+
+    pub fn channel_by_id(&self, id: i64) -> Result<Option<Channel>> {
+        Ok(self
+            .db
+            .query_row(&format!("SELECT {CHANNEL_COLUMNS} FROM channels c JOIN accounts a ON a.id = account_id WHERE c.id = ?1"), [id], channel_row)
+            .optional()?)
+    }
+
+    pub fn set_credential(&self, channel: i64, sealed: &[u8], now: i64) -> Result<()> {
+        self.db.execute("UPDATE channels SET credential = ?2, updated = ?3 WHERE id = ?1", params![channel, sealed, now])?;
+        Ok(())
+    }
+
+    /// Takes the channel's run lease: of two runs at once (the poller and a sync-now),
+    /// one gets it. A lease older than `stale_after` seconds belongs to a run that died
+    /// (a crash, a restart) and is taken over.
+    pub fn claim_channel(&self, channel: i64, now: i64, stale_after: i64) -> Result<bool> {
+        Ok(self.db.execute(
+            "UPDATE channels SET running_since = ?2 WHERE id = ?1 AND (running_since IS NULL OR running_since < ?3)",
+            params![channel, now, now - stale_after],
+        )? == 1)
+    }
+
+    /// Releases the run lease with how the run ended.
+    pub fn release_channel(&self, channel: i64, o: &Outcome, now: i64) -> Result<()> {
+        self.db.execute(
+            "UPDATE channels SET running_since = NULL, stage = ?2, failures = ?3, next_attempt = ?4,
+               last_sync = coalesce(?5, last_sync), last_error = ?6, updated = ?7 WHERE id = ?1",
+            params![channel, o.stage, o.failures, o.next_attempt, o.last_sync, o.last_error, now],
         )?;
+        Ok(())
+    }
+
+    pub fn record_run(&self, r: &Run) -> Result<()> {
+        self.db.execute(
+            "INSERT INTO sync_runs (channel_id, started, finished, full, upserts, deletes, error) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![r.channel_id, r.started, r.finished, r.full, r.upserts, r.deletes, r.error],
+        )?;
+        Ok(())
+    }
+
+    pub fn runs(&self, channel: i64) -> Result<Vec<Run>> {
+        let mut q = self.db.prepare("SELECT channel_id, started, finished, full, upserts, deletes, error FROM sync_runs WHERE channel_id = ?1 ORDER BY id")?;
         let rows = q
-            .query_map([account], |r| {
-                Ok(Channel {
-                    id: r.get(0)?,
-                    account: r.get(1)?,
-                    provider: r.get(2)?,
-                    class: r.get(3)?,
-                    name: r.get(4)?,
-                    cursor: r.get(5)?,
-                    stage: r.get(6)?,
-                })
+            .query_map([channel], |r| {
+                Ok(Run { channel_id: r.get(0)?, started: r.get(1)?, finished: r.get(2)?, full: r.get(3)?, upserts: r.get(4)?, deletes: r.get(5)?, error: r.get(6)? })
             })?
             .collect::<Result<_, _>>()?;
         Ok(rows)
@@ -356,10 +472,11 @@ impl Store {
         let tx = self.db.transaction()?;
         for it in items {
             tx.execute(
-                "INSERT INTO items (channel_id, provider_id, etag, key_version, sealed, updated) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                "INSERT INTO items (channel_id, provider_id, etag, key_version, sealed, updated, deleted) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
                  ON CONFLICT (channel_id, provider_id) DO UPDATE SET
-                   etag = excluded.etag, key_version = excluded.key_version, sealed = excluded.sealed, updated = excluded.updated",
-                params![channel, it.provider_id, it.etag, it.key_version, it.sealed, now],
+                   etag = excluded.etag, key_version = excluded.key_version, sealed = excluded.sealed,
+                   updated = excluded.updated, deleted = excluded.deleted",
+                params![channel, it.provider_id, it.etag, it.key_version, it.sealed, now, it.deleted],
             )?;
         }
         let n = tx.execute("UPDATE channels SET cursor = ?2, stage = ?3, updated = ?4 WHERE id = ?1", params![channel, cursor, stage, now])?;
@@ -372,7 +489,7 @@ impl Store {
 
     pub fn items(&self, channel: i64) -> Result<Vec<Item>> {
         let mut q = self.db.prepare(
-            "SELECT id, channel_id, provider_id, etag, key_version, sealed, updated FROM items WHERE channel_id = ?1 ORDER BY id",
+            "SELECT id, channel_id, provider_id, etag, key_version, sealed, updated, deleted FROM items WHERE channel_id = ?1 ORDER BY id",
         )?;
         let rows = q
             .query_map([channel], |r| {
@@ -384,6 +501,7 @@ impl Store {
                     key_version: r.get(4)?,
                     sealed: r.get(5)?,
                     updated: r.get(6)?,
+                    deleted: r.get(7)?,
                 })
             })?
             .collect::<Result<_, _>>()?;
@@ -402,7 +520,7 @@ mod tests {
     }
 
     fn item(pid: &str, sealed: &[u8]) -> Item {
-        Item { id: 0, channel_id: 0, provider_id: pid.into(), etag: Some("e1".into()), key_version: 1, sealed: sealed.to_vec(), updated: 0 }
+        Item { id: 0, channel_id: 0, provider_id: pid.into(), etag: Some("e1".into()), key_version: 1, sealed: sealed.to_vec(), updated: 0, deleted: false }
     }
 
     #[test]
@@ -478,6 +596,24 @@ mod tests {
         s.put_checkpoint("ank", b"k1", b"c1").unwrap();
         s.put_checkpoint("ank", b"k1", b"c2").unwrap();
         assert_eq!(s.checkpoints("ank").unwrap(), vec![b"c2".to_vec()]);
+    }
+
+    #[test]
+    fn one_run_holds_a_channel_until_it_releases_or_goes_stale() {
+        let (_d, s) = store();
+        let ch = s.channel("ank", "fake", "calendar", "primary", 0).unwrap();
+        assert!(s.claim_channel(ch, 100, 600).unwrap());
+        assert!(!s.claim_channel(ch, 101, 600).unwrap());
+        // A run that died 10 minutes ago is taken over.
+        assert!(s.claim_channel(ch, 701, 600).unwrap());
+        let o = Outcome { stage: "incremental".into(), failures: 0, next_attempt: 760, last_sync: Some(701), last_error: None };
+        s.release_channel(ch, &o, 702).unwrap();
+        assert!(s.claim_channel(ch, 703, 600).unwrap());
+        let c = s.channel_by_id(ch).unwrap().unwrap();
+        assert_eq!((c.stage.as_str(), c.next_attempt, c.last_sync), ("incremental", 760, Some(701)));
+        s.record_run(&Run { channel_id: ch, started: 1, finished: 2, full: true, upserts: 3, deletes: 1, error: None }).unwrap();
+        assert_eq!(s.runs(ch).unwrap().len(), 1);
+        assert_eq!(s.all_channels().unwrap().len(), 1);
     }
 
     #[test]
