@@ -28,7 +28,7 @@ done ones. The project page's *Progress* lists this phase on one line.
 - [x] 4. The store: encrypted items, channels and cursors (ADR-0003), migrations; SQLite (ADR-0012), done before item 3 at the owner's choice; items are stored as sealed bytes, the sealing comes with item 3
 - [x] 5. Cedar policies and schema for users, devices and agents, validated in CI; ADR-0014: devices act as their user, agents hold only grants (a linked template each); the Keys service asks Cedar; grants are stored and linked in phase 5
 - [x] 6. The hash-chained, signed audit log with device checkpoints; ADR-0015: one chain per account, every Cedar decision and CA event logged before acting, nodes check from their checkpoint before every keys command (`audit verify --all` from the start); the delegate's entries come with sync in phase 2
-- [ ] 7. NixOS module for the server and home-manager module for the node, with module tests; deployed on ghost001
+- [ ] 7. NixOS module for the server and home-manager module for the node, with module tests; deployed on ghost001. Modules and tests done (ADR-0016), wired into neusis for ghost001 and rogue; open: the owner's delegate-key secret, neusis commit and deploy, then enrolling over the tailnet
 
 ## Notes
 
