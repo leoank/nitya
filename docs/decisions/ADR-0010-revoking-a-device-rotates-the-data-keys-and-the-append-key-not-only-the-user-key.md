@@ -1,6 +1,6 @@
 # ADR-0010: Revoking a device rotates the data keys and the append key, not only the user key
 
-Status: proposed
+Status: accepted (2026-11-26, by the owner)
 Date: 2026-11-26
 
 ## Context
@@ -35,4 +35,4 @@ keys") and binds it in its associated data. The rest of ADR-0005 stands.
   Argon2id re-wrap of the recovery key, independent of the number of items.
 - Accounts accumulate DEK versions, one per revocation; a later background job may
   re-encrypt old items and drop old versions if that ever matters.
-- When accepted, ADR-0005 is marked as amended by this record.
+- ADR-0005 is marked as amended by this record.

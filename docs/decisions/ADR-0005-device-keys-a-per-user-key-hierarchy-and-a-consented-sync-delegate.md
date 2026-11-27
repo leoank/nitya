@@ -1,6 +1,6 @@
 # ADR-0005: Device keys with short-lived certificates, a per-user key hierarchy, and a consented sync delegate; no MLS
 
-Status: accepted
+Status: accepted, amended by ADR-0010 (revocation)
 Date: 2026-11-23
 
 ## Context
