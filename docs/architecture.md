@@ -85,7 +85,8 @@ flowchart LR
   RustCrypto (ADR-0005, ADR-0013); candidates to evaluate: pimalaya crates for mail (@himalaya),
   an iCalendar crate chosen by [[EXP-20261123-bhfzfs]].
 - Nix flake for the dev shell, packages, NixOS module (server) and home-manager module
-  (node), with module tests, as saarthi and sandhi do.
+  (node), with module tests, as saarthi and sandhi do; secrets reach the server as agenix
+  files passed as systemd credentials (ADR-0016).
 - Provider OAuth apps as the `nitya-oauth` terranix stack (`nix/infra/`), on neusis's
   stack runner; secrets as agenix files in neusis (ADR-0009).
 

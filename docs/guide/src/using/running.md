@@ -1,8 +1,10 @@
 # Running nitya
 
-nitya is a server and a node per machine, each on its own identity on your tailnet. Until
-the NixOS and home-manager modules exist, you run them by hand from the flake. This page
-gets a server up and a device enrolled. The reference lists every option for
+nitya is a server and a node per machine, each on its own identity on your tailnet. This
+page runs them by hand from the flake, to get a server up and a device enrolled. On
+machines configured with Nix, the [modules](../deployment/modules.md) do the same: there
+`nitya-admin` stands for `nitya-server --state-dir …`, and `nitya-node` already knows its
+state directory, hostname and server. The reference lists every option for
 [`nitya-server`](../reference/nitya-server.md) and [`nitya-node`](../reference/nitya-node.md).
 
 ## The server

@@ -30,7 +30,7 @@ use nitya_tailnet::{AuthKey, Options, Tailnet};
 /// The port nitya's server listens on, on its tailnet identity.
 pub const PORT: u16 = 7300;
 
-const USAGE: &str = "usage: nitya-server --state-dir DIR [--hostname H] [--authkey-file F] [--port P] [--ephemeral]\n\
+const USAGE: &str = "usage: nitya-server --state-dir DIR [--hostname H] [--authkey-file F] [--port P] [--ephemeral] [--delegate-key F]\n\
        nitya-server --state-dir DIR enroll-code --account A [--kind node|app|agent] [--minutes M]\n\
        nitya-server --state-dir DIR devices\n\
        nitya-server --state-dir DIR revoke SERIAL";
@@ -41,6 +41,7 @@ state directory. The admin commands work while the server runs.
 
 Usage:
   nitya-server --state-dir DIR [--hostname H] [--authkey-file F] [--port P] [--ephemeral]
+               [--delegate-key F]
   nitya-server --state-dir DIR enroll-code --account A [--kind node|app|agent] [--minutes M]
   nitya-server --state-dir DIR devices
   nitya-server --state-dir DIR revoke SERIAL
@@ -62,11 +63,13 @@ Options:
   --authkey-file F    a tailnet auth key, for the first join
   --port P            the port on the tailnet (default 7300)
   --ephemeral         join as an ephemeral node
+  --delegate-key F    the sync-delegate key, an age identity file (as age-keygen writes
+                      it); without it the server makes delegate.key in DIR
   --help, --version
 ";
 
 enum Command {
-    Serve { hostname: String, authkey: Option<PathBuf>, port: u16, ephemeral: bool },
+    Serve { hostname: String, authkey: Option<PathBuf>, port: u16, ephemeral: bool, delegate: Option<PathBuf> },
     EnrollCode { account: String, kind: String, minutes: i64 },
     Devices,
     Revoke(u64),
@@ -75,6 +78,7 @@ enum Command {
 fn args() -> Result<Option<(PathBuf, Command)>> {
     let mut a = std::env::args().skip(1);
     let (mut dir, mut hostname, mut authkey, mut port, mut ephemeral) = (None, "nitya".to_string(), None, PORT, false);
+    let mut delegate = None;
     let (mut account, mut kind, mut minutes) = (None, "node".to_string(), 15);
     let mut sub: Option<String> = None;
     let mut serial = None;
@@ -86,6 +90,7 @@ fn args() -> Result<Option<(PathBuf, Command)>> {
             "--authkey-file" => authkey = Some(PathBuf::from(val()?)),
             "--port" => port = val()?.parse().context("--port")?,
             "--ephemeral" => ephemeral = true,
+            "--delegate-key" => delegate = Some(PathBuf::from(val()?)),
             "--account" => account = Some(val()?),
             "--kind" => kind = val()?,
             "--minutes" => minutes = val()?.parse().context("--minutes")?,
@@ -101,7 +106,7 @@ fn args() -> Result<Option<(PathBuf, Command)>> {
     }
     let dir = dir.with_context(|| format!("--state-dir is required\n{USAGE}"))?;
     let cmd = match sub.as_deref() {
-        None => Command::Serve { hostname, authkey, port, ephemeral },
+        None => Command::Serve { hostname, authkey, port, ephemeral, delegate },
         Some("enroll-code") => Command::EnrollCode { account: account.context("enroll-code needs --account")?, kind, minutes },
         Some("devices") => Command::Devices,
         _ => Command::Revoke(serial.context("revoke needs a certificate's serial (see `devices`)")?),
@@ -146,7 +151,7 @@ async fn main() -> Result<()> {
             }
             Ok(())
         }
-        Command::Serve { hostname, authkey, port, ephemeral } => {
+        Command::Serve { hostname, authkey, port, ephemeral, delegate } => {
             let tailnet = Tailnet::start(Options {
                 name: "nitya".into(),
                 dir: dir.join("tailnet"),
@@ -156,9 +161,12 @@ async fn main() -> Result<()> {
                 give_up_after: None,
             })
             .await?;
-            // Kept in a file beside the store until the NixOS module passes it as a systemd
-            // credential (phase 1 item 7); sync uses it to seal and open consented classes.
-            let delegate = nitya_keys::Delegate::load_or_generate(&dir.join("delegate.key"))?;
+            // Sync uses it to seal and open consented classes. Provided (the NixOS module
+            // passes an agenix secret as a credential, ADR-0016), or made beside the store.
+            let delegate = match delegate {
+                Some(p) => nitya_keys::Delegate::load(&p)?,
+                None => nitya_keys::Delegate::load_or_generate(&dir.join("delegate.key"))?,
+            };
             // Agent grants come with phase 5; until then agents are refused everything.
             let policy = Arc::new(policy::Policy::new(&[])?);
             eprintln!("nitya-server: on tailnet as {hostname} ({}), port {port}", tailnet.ips());

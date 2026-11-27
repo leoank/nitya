@@ -384,6 +384,19 @@ impl Delegate {
         Ok(Delegate { id: load_or_generate(path)? })
     }
 
+    /// A delegate key provided from outside, as `age-keygen` writes it (comment lines and
+    /// one `AGE-SECRET-KEY-` line; an agenix secret passed as a systemd credential); never
+    /// made here.
+    pub fn load(path: &Path) -> Result<Delegate> {
+        let b = Zeroizing::new(std::fs::read(path).with_context(|| format!("reading the delegate key {}", path.display()))?);
+        let line = b
+            .split(|c| *c == b'\n')
+            .map(|l| l.trim_ascii())
+            .find(|l| l.starts_with(b"AGE-SECRET-KEY-"))
+            .with_context(|| format!("{} holds no age identity", path.display()))?;
+        Ok(Delegate { id: identity_from(line)? })
+    }
+
     /// The recipient devices wrap consented DEKs to.
     pub fn public(&self) -> String {
         self.id.to_public().to_string()
@@ -546,6 +559,16 @@ mod tests {
         assert_eq!(&d.open_item("ank", &keys, "calendar", "e1", &delegated).unwrap()[..], b"after");
         let r = recover("ank", keys, PASS).unwrap();
         assert_eq!(&r.open_item("mail", "m1", &new).unwrap()[..], b"after");
+    }
+
+    #[test]
+    fn a_provided_delegate_key_is_read_and_never_made() {
+        let d = tempfile::tempdir().unwrap();
+        let p = d.path().join("delegate.key");
+        assert!(Delegate::load(&p).is_err());
+        let id = Identity::generate();
+        std::fs::write(&p, format!("# created: 2026-11-27\n# public key: {}\n{}\n", id.to_public(), id.to_string().expose_secret())).unwrap();
+        assert_eq!(Delegate::load(&p).unwrap().public(), id.to_public().to_string());
     }
 
     #[test]

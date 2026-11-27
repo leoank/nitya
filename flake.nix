@@ -32,6 +32,9 @@
 
       # EXP-20261123-bhfz49's token probe as a NixOS service (neusis wires it on ghost001).
       flake.nixosModules.token-probe = ./nix/modules/token-probe.nix;
+      # The server on NixOS and the node for a user (ADR-0016); tested in checks.modules.
+      flake.nixosModules.server = import ./nix/modules/server.nix inputs.self;
+      flake.homeModules.node = import ./nix/modules/node.nix inputs.self;
 
       perSystem = { config, pkgs, system, lib, ... }:
         let
@@ -195,6 +198,12 @@
             assert lib.hasSuffix "--state /var/lib/nitya-token-probe --google-client %d/google-client --microsoft-token %d/microsoft-token" exec;
             assert sys.config.systemd.timers.nitya-token-probe.timerConfig.OnCalendar == "*-*-* 00/6:00:00";
             pkgs.runCommand "token-probe-module" { } "touch $out";
+
+          # The server and node modules evaluate as they should (nix/module-tests.nix).
+          checks.modules = import ./nix/module-tests.nix {
+            inherit pkgs lib;
+            inherit (inputs) nixpkgs self;
+          };
 
           # The notebook passes yajna validate.
           checks.notebook = pkgs.runCommand "nitya-notebook" {

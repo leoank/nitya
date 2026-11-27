@@ -17,6 +17,7 @@
 # Deployment
 
 - [Overview](deployment/README.md)
+- [The server and node modules](deployment/modules.md)
 - [Provider sign-in apps](deployment/provider-apps.md)
 - [Consent and refresh tokens](deployment/consent.md)
 

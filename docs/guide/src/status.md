@@ -7,7 +7,8 @@ Phase 0, the design and its spikes, is done except for one experiment that takes
 What runs today ([Using nitya](using/running.md)):
 
 - **The server and the node**, each on its own tailnet identity, talking gRPC on the
-  tailnet only.
+  tailnet only, deployed by a NixOS module and a home-manager module
+  ([The server and node modules](deployment/modules.md)).
 - **Device enrollment**: one-time codes, 24-hour certificates bound to the device's tailnet
   node, every request signed by the device, renewal, revocation
   ([Running nitya](using/running.md)).
@@ -32,6 +33,6 @@ without reading what you did not delegate, provided revocation also rotates the 
 ([[EXP-20261123-bhfzeh]]). Whether the provider tokens last a month on a headless server
 is being measured ([[EXP-20261123-bhfz49]]).
 
-Next: the NixOS and home-manager modules, and nitya running on its own server. After
-that, phase 2 brings calendar sync and tasks. The phases are on the
+Next: nitya running on its own server, ghost001, through those modules. After that,
+phase 2 brings calendar sync and tasks. The phases are on the
 [project page](https://github.com/leoank/nitya/blob/main/notes/README.md).
