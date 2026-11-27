@@ -7,6 +7,13 @@
 - [How it works](how-it-works.md)
 - [Where it stands](status.md)
 
+# Using nitya
+
+- [Running nitya](using/running.md)
+- [Your keys](using/keys.md)
+- [Who may do what](using/access.md)
+- [The audit log](using/audit.md)
+
 # Deployment
 
 - [Overview](deployment/README.md)
@@ -15,6 +22,8 @@
 
 # Reference
 
+- [nitya-server](reference/nitya-server.md)
+- [nitya-node](reference/nitya-node.md)
 - [nitya-consent](reference/nitya-consent.md)
 
 # Design

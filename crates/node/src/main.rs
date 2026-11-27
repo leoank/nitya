@@ -42,6 +42,46 @@ use tonic::transport::Channel;
 
 const USAGE: &str = "usage: nitya-node --state-dir DIR --hostname NAME [--authkey-file F] [--server HOST:PORT] [--ephemeral] enroll CODE | whoami | audit verify [--all] | keys (fingerprint | init | status | approve SERIAL FPR | recover | consent CLASS | withdraw CLASS)";
 
+const HELP: &str = "\
+nitya-node: nitya's node on this machine, on its own tailnet identity, with a device key
+and a certificate from the server.
+
+Usage:
+  nitya-node --state-dir DIR --hostname NAME [--authkey-file F] [--server HOST:PORT]
+             [--ephemeral] COMMAND
+
+Commands:
+  enroll CODE                  enroll this device with a code from `nitya-server enroll-code`
+  whoami                       who the server takes this device to be (the default)
+  audit verify [--all]         check the account's audit log from this device's checkpoint
+                               (--all: from the first entry), print the new entries, and
+                               hand the server the head this device verified
+  keys fingerprint             this device's wrap key fingerprint, to compare when another
+                               device approves it; needs no server
+  keys init                    make the account's keys on its first device; reads the
+                               recovery passphrase from the terminal (twice) or stdin
+  keys status                  the account's devices, which hold the keys, the classes
+                               delegated to the server
+  keys approve SERIAL FPR      give device SERIAL the account's keys, if its fingerprint
+                               is FPR (from `keys fingerprint` on that device)
+  keys recover                 unlock with the recovery passphrase and approve this device
+  keys consent CLASS           let the server read and write CLASS while no device is online
+  keys withdraw CLASS          take that back; CLASS is mail, calendar, tasks, tokens, files
+
+Every keys command checks the audit log first and stops if its history was rewritten;
+one that unlocks rotates the keys first when a device was revoked. Calls renew the
+certificate once half its life has passed.
+
+Options:
+  --state-dir DIR     tailnet identity (tailnet/), device key, wrap key, certificate, the
+                      CA's and the audit log's keys as first seen, the audit checkpoint
+  --hostname NAME     this node's tailnet hostname, one per machine (nitya-node-rogue)
+  --authkey-file F    a tailnet auth key, for the first join
+  --server HOST:PORT  the server on the tailnet (default nitya:7300)
+  --ephemeral         join as an ephemeral node
+  --help, --version
+";
+
 enum Command {
     Enroll(String),
     WhoAmI,
@@ -72,6 +112,10 @@ fn args() -> Result<Option<Args>> {
             "--ephemeral" => ephemeral = true,
             "--all" if matches!(cmd, Some(Command::AuditVerify { .. })) => cmd = Some(Command::AuditVerify { all: true }),
             "--version" => return Ok(None),
+            "--help" => {
+                print!("{HELP}");
+                std::process::exit(0)
+            }
             "enroll" if cmd.is_none() => cmd = Some(Command::Enroll(val()?)),
             "whoami" if cmd.is_none() => cmd = Some(Command::WhoAmI),
             "keys" if cmd.is_none() => cmd = Some(Command::Keys(a.by_ref().collect())),

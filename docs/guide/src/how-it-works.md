@@ -26,6 +26,20 @@ start one for a job (triage the inbox, find a time for a meeting) and hands it a
 that covers only that job. The agent reads what the grant allows and proposes a plan;
 nothing changes until you approve it.
 
+Underneath all of it:
+
+- **Every device has its own identity.** A node, an app install or an agent job enrolls
+  with a one-time code and gets a short-lived certificate tied to its machine on the
+  tailnet. Every request is signed with the device's key
+  ([Running nitya](using/running.md)).
+- **Your data is under your keys.** The server stores it encrypted and holds no key that
+  opens it, except for the classes you let it sync while you are offline
+  ([Your keys](using/keys.md)).
+- **Policies decide every request**, and agents get only what a grant names
+  ([Who may do what](using/access.md)).
+- **Every decision is in a signed log** that your devices check, so a rewritten history
+  is noticed ([The audit log](using/audit.md)).
+
 Meeting polls are the one thing outside your tailnet: people you invite answer on a small
 page that holds only the poll, and nitya fetches their answers from there.
 

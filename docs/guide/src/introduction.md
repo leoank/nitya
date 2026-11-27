@@ -25,10 +25,10 @@ What it is built to do, once its first phase is done:
 nitya runs as a server on one of your machines and a small node on each of the others,
 all on your tailnet; on the phone it is a workspace of the saarthi app.
 
-> **nitya is at the very start.** Nothing on this list runs yet: the project is in its
-> design and spike phase. [Where it stands](status.md) says what exists today; the
-> [Deployment](deployment/README.md) section covers the one part you can set up now, the
-> sign-in apps at Google and Microsoft.
+> **nitya is early.** None of the features on this list run yet. What runs is the core
+> they will rest on: the server and node on your tailnet, enrolled devices, your keys,
+> the policies and the audit log. [Where it stands](status.md) says what exists today, and
+> [Using nitya](using/running.md) shows how to run it.
 
 nitya is built in the open at [github.com/leoank/nitya](https://github.com/leoank/nitya),
 with its lab notebook (experiments, runs, decisions) in the same repository.

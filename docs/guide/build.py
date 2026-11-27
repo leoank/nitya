@@ -3,10 +3,11 @@
     python3 docs/guide/build.py <repo root> <out dir>
 
 Copies docs/guide/ to a temporary directory, adds what is generated so it cannot drift from
-the code (the reference for `nitya-consent` from its `--help`, the design documents from
-docs/ with one sidebar entry per ADR), turns the notebook's `[[ID]]` links into links to the
-page on GitHub, checks every relative link, and runs `mdbook build` into <out dir>. Needs
-`nitya-consent` and `mdbook` on PATH; `nix build .#docs` provides them. Shaped after the
+the code (the reference for `nitya-server`, `nitya-node` and `nitya-consent` from their
+`--help`, the design documents from docs/ with one sidebar entry per ADR), turns the
+notebook's `[[ID]]` links into links to the page on GitHub, checks every relative link, and
+runs `mdbook build` into <out dir>. Needs the three commands and `mdbook` on PATH;
+`nix build .#docs` provides them. Shaped after the
 yajna and saarthi guides' build scripts.
 """
 
@@ -40,6 +41,10 @@ for cmd in (["nitya-consent"], ["nitya-consent", "google"], ["nitya-consent", "m
     cli.extend([f"## {' '.join(cmd)}\n", "```text", help_text(*cmd).rstrip(), "```\n"])
 (src / "reference").mkdir(exist_ok=True)
 (src / "reference/nitya-consent.md").write_text("\n".join(cli))
+for cmd, guide in (("nitya-server", "running.md"), ("nitya-node", "running.md")):
+    page = [f"# {cmd}\n", "Generated from `--help` at build time. How to use it is in",
+            f"[Running nitya](../using/{guide}).\n", "```text", help_text(cmd).rstrip(), "```\n"]
+    (src / f"reference/{cmd}.md").write_text("\n".join(page))
 
 # --- design documents ------------------------------------------------------------------
 design = src / "design"

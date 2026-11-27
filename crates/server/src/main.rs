@@ -35,6 +35,36 @@ const USAGE: &str = "usage: nitya-server --state-dir DIR [--hostname H] [--authk
        nitya-server --state-dir DIR devices\n\
        nitya-server --state-dir DIR revoke SERIAL";
 
+const HELP: &str = "\
+nitya-server: nitya's server on its own tailnet identity, and the admin commands for its
+state directory. The admin commands work while the server runs.
+
+Usage:
+  nitya-server --state-dir DIR [--hostname H] [--authkey-file F] [--port P] [--ephemeral]
+  nitya-server --state-dir DIR enroll-code --account A [--kind node|app|agent] [--minutes M]
+  nitya-server --state-dir DIR devices
+  nitya-server --state-dir DIR revoke SERIAL
+
+Commands:
+  (none)        serve the gRPC API on the tailnet: Devices, Keys, Audit
+  enroll-code   print a one-time code with which one device enrolls into account A as a
+                node, app or agent (default node), valid M minutes (default 15)
+  devices       list each device's latest certificate: account, kind, hostname, tailnet
+                node id, serial, expiry, and whether it is revoked
+  revoke        revoke the device whose certificate has SERIAL, for good: it can no longer
+                call, renew or enroll; its wrap of the account's keys is deleted and the
+                next device to unlock rotates them
+
+Options:
+  --state-dir DIR     tailnet identity (tailnet/), store (nitya.db), CA key (ca.key), audit
+                      key (audit.key), sync-delegate key (delegate.key); made on first use
+  --hostname H        the server's tailnet hostname (default nitya)
+  --authkey-file F    a tailnet auth key, for the first join
+  --port P            the port on the tailnet (default 7300)
+  --ephemeral         join as an ephemeral node
+  --help, --version
+";
+
 enum Command {
     Serve { hostname: String, authkey: Option<PathBuf>, port: u16, ephemeral: bool },
     EnrollCode { account: String, kind: String, minutes: i64 },
@@ -60,6 +90,10 @@ fn args() -> Result<Option<(PathBuf, Command)>> {
             "--kind" => kind = val()?,
             "--minutes" => minutes = val()?.parse().context("--minutes")?,
             "--version" => return Ok(None),
+            "--help" => {
+                print!("{HELP}");
+                std::process::exit(0)
+            }
             "enroll-code" | "devices" | "revoke" if sub.is_none() => sub = Some(x),
             s if sub.as_deref() == Some("revoke") && serial.is_none() => serial = Some(s.parse::<u64>().context("a serial is a number")?),
             _ => bail!("unknown argument {x}\n{USAGE}"),

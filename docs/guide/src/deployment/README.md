@@ -2,8 +2,9 @@
 
 nitya is deployed with Nix: the server as a NixOS module, the node as a home-manager
 module, the cloud pieces as terranix stacks, and its secrets as agenix files in the flake
-that configures your machines. None of the modules exist yet; what you can set up today
-is the first thing every later step needs, the apps nitya signs in to your providers with.
+that configures your machines. The modules don't exist yet, so for now you run the server
+and node by hand ([Running nitya](../using/running.md)). What you can set up today is the
+first thing every later step needs: the apps nitya signs in to your providers with.
 
 1. [Provider sign-in apps](provider-apps.md): an app registration at Microsoft, a Google
    Cloud project and a Google OAuth client, from the `nitya-oauth` stack plus four steps in
