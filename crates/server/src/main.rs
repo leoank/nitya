@@ -13,6 +13,7 @@
 mod ca;
 mod devices;
 mod keys;
+mod policy;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -121,11 +122,13 @@ async fn main() -> Result<()> {
             // Kept in a file beside the store until the NixOS module passes it as a systemd
             // credential (phase 1 item 7); sync uses it to seal and open consented classes.
             let delegate = nitya_keys::Delegate::load_or_generate(&dir.join("delegate.key"))?;
+            // Agent grants come with phase 5; until then agents are refused everything.
+            let policy = Arc::new(policy::Policy::new(&[])?);
             eprintln!("nitya-server: on tailnet as {hostname} ({}), port {port}", tailnet.ips());
             let ca = Arc::new(ca);
             tonic::transport::Server::builder()
                 .add_service(DevicesServer::new(devices::Service { ca: ca.clone() }))
-                .add_service(KeysServer::new(keys::Service { ca, delegate_key: delegate.public() }))
+                .add_service(KeysServer::new(keys::Service { ca, delegate_key: delegate.public(), policy }))
                 .serve_with_incoming(tailnet.incoming(port)?)
                 .await
                 .context("serving on the tailnet")

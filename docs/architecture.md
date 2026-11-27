@@ -80,7 +80,7 @@ flowchart LR
 
 ## Stack
 - Rust for the server and node, like saarthi (ADR-0001); saarthi's tailnet crate, copied
-  as sandhi did; the API is gRPC with tonic, every call signed by the device (ADR-0011); one SQLite database as the store (ADR-0012); Cedar for policy (ADR-0006); age X25519 key wrapping and AEAD from
+  as sandhi did; the API is gRPC with tonic, every call signed by the device (ADR-0011); one SQLite database as the store (ADR-0012); Cedar for policy, its schema and policies in `crates/server/policies` (ADR-0006, ADR-0014); age X25519 key wrapping and AEAD from
   RustCrypto (ADR-0005, ADR-0013); candidates to evaluate: pimalaya crates for mail (@himalaya),
   an iCalendar crate chosen by [[EXP-20261123-bhfzfs]].
 - Nix flake for the dev shell, packages, NixOS module (server) and home-manager module

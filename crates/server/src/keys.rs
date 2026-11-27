@@ -14,11 +14,13 @@ use tonic::{Request, Response, Status};
 
 use crate::ca::Ca;
 use crate::devices::caller;
+use crate::policy::{Policy, Principal, Resource};
 
 pub struct Service {
     pub ca: Arc<Ca>,
     /// The server's sync-delegate key, which devices wrap consented DEKs to.
     pub delegate_key: String,
+    pub policy: Arc<Policy>,
 }
 
 fn internal(e: anyhow::Error) -> Status {
@@ -26,6 +28,16 @@ fn internal(e: anyhow::Error) -> Status {
 }
 
 impl Service {
+    /// Whether the policies let the caller do `action` on its account's key set.
+    fn allow(&self, c: &nitya_proto::v1::CertBody, action: &str) -> Result<(), Status> {
+        let v = self.policy.decide(&Principal::of(c), action, &Resource::KeySet { user: c.account.clone() }, false).map_err(internal)?;
+        if v.allowed {
+            return Ok(());
+        }
+        let why = if v.policies.is_empty() { "no policy permits it".to_string() } else { v.policies.join(", ") };
+        Err(Status::permission_denied(format!("{action} refused: {why}")))
+    }
+
     fn members(&self, account: &str) -> Result<Vec<Member>, Status> {
         Ok(self
             .ca
@@ -92,6 +104,7 @@ impl Keys for Service {
         let (node, _) = caller(&req).await?;
         let body = req.get_ref().encode_to_vec();
         let c = self.ca.authorize(req.metadata(), "nitya.v1.Keys/Get", &body, &node, dev::now())?;
+        self.allow(&c, "keys.read")?;
         let row = self.ca.store().key_set(&c.account).map_err(internal)?;
         let (keys, revision, rotation_pending) = match row {
             Some(r) => (Some(KeySet::decode(r.keys.as_slice()).map_err(|e| Status::internal(e.to_string()))?), r.revision, r.rotation_pending),
@@ -104,6 +117,7 @@ impl Keys for Service {
         let (node, _) = caller(&req).await?;
         let body = req.get_ref().encode_to_vec();
         let c = self.ca.authorize(req.metadata(), "nitya.v1.Keys/Put", &body, &node, dev::now())?;
+        self.allow(&c, "keys.write")?;
         let r = req.into_inner();
         let new = r.keys.ok_or_else(|| Status::invalid_argument("no keys"))?;
         let members = self.members(&c.account)?;

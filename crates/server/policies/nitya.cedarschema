@@ -1,0 +1,30 @@
+// nitya's Cedar schema (ADR-0006, ADR-0014). Each account is a User; everything it owns
+// sits under it, so `resource in principal.user` is "of the caller's own account".
+namespace Nitya {
+  entity User;
+  // A node or an app install: acts as its user (ADR-0014).
+  entity Device in [User] { user: User, kind: String };
+  // An agent job: only what a grant names (ADR-0004).
+  entity Agent in [User] { user: User };
+  // The account's key set (ADR-0013).
+  entity KeySet in [User];
+  // A channel: one provider account and data class (ADR-0003).
+  entity Source in [User] { class: String };
+  entity Item in [Source];
+  // A proposed set of writes awaiting the owner's approval (ADR-0004).
+  entity Plan in [User];
+
+  type Write = { plan_approved: Bool };
+
+  action "keys.read", "keys.write" appliesTo { principal: [Device, Agent], resource: [KeySet] };
+  action "plan.approve" appliesTo { principal: [Device, Agent], resource: [Plan] };
+
+  // ADR-0004's grants, each its own action; no read action is a member of another, so
+  // no grant implies another.
+  action "calendar.read", "calendar.event.read", "mail.search", "mail.read", "task.read"
+    appliesTo { principal: [Device, Agent], resource: [Source, Item] };
+  // Writes are grouped only so one policy can require an approved plan for all of them.
+  action "writes";
+  action "calendar.write", "calendar.invite", "draft.create", "task.write" in ["writes"]
+    appliesTo { principal: [Device, Agent], resource: [Source, Item], context: Write };
+}
