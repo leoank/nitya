@@ -24,7 +24,7 @@ done ones. The project page's *Progress* lists this phase on one line.
 
 - [x] 1. The tailnet crate from saarthi, copied as sandhi did; server and node each with a tsnet identity
 - [x] 2. Enrollment and the device CA: Ed25519 device keys, short-lived certificates, signed requests, revocation ([[EXP-20261126-hvzed5]], ADR-0011); the app's enrollment, keys in a TPM or the Android Keystore, and revoking from a device come later
-- [ ] 3. Accounts and the key hierarchy as [[EXP-20261123-bhfzeh]] left it; the sync delegate with consent
+- [x] 3. Accounts and the key hierarchy as [[EXP-20261123-bhfzeh]] left it; the sync delegate with consent; ADR-0013: one key set per account written whole by its devices, new devices approved by fingerprint, rotation by the next device to unlock after a revocation; the delegate's audit entries come with item 6
 - [x] 4. The store: encrypted items, channels and cursors (ADR-0003), migrations; SQLite (ADR-0012), done before item 3 at the owner's choice; items are stored as sealed bytes, the sealing comes with item 3
 - [ ] 5. Cedar policies and schema for users, devices and agents, validated in CI
 - [ ] 6. The hash-chained, signed audit log with device checkpoints
