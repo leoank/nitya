@@ -4,9 +4,9 @@ type: phase
 schema_version: 1
 title: "Phase 1: core: server and node on tsnet, device identities, per-user keys, audit log, RBAC"
 project: PRJ-0001
-status: active
+status: done
 since: 95c7efc514814093bfc0ce7db7adf271ab4c435b
-until: null               # the commit it finished at: yajna phase done
+until: 917bb147d7ecfc3a3841d9f27e5132e907e27be9
 created: 2026-11-23
 author: agent:claude
 tags: []
@@ -34,3 +34,7 @@ done ones. The project page's *Progress* lists this phase on one line.
 
 - 2026-11-26: item 4 before item 3, on the owner's choice (ADR-0012): the key hierarchy's
   wraps and data keys need the store, and the CA's state moved into it from files.
+- 2026-11-27: closed at the owner's word with every item done and nitya running on
+  ghost001. Of the goal's checks, a node enrolls, a revoked device is refused, and every
+  request is in a chain a device verifies; the app's enrollment waits for the Nitya
+  workspace (phase 6).

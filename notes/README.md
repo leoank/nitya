@@ -42,7 +42,7 @@ The project's phases, one line each, ticked when the phase is done; each phase's
 its goal and its own checklist. `yajna new phase` adds one; `yajna tasks` lists the open
 items with the rest.
 - [ ] [[PHS-20261123-bhenjn]] Phase 0: spikes and design
-- [ ] [[PHS-20261123-bhen36]] Phase 1: core: server and node on tsnet, device identities, per-user keys, audit log, RBAC
+- [x] [[PHS-20261123-bhen36]] Phase 1: core: server and node on tsnet, device identities, per-user keys, audit log, RBAC
 - [ ] [[PHS-20261123-bhen6w]] Phase 2: calendar sync and tasks
 - [ ] [[PHS-20261123-bhend2]] Phase 3: email: read, search, triage
 - [ ] [[PHS-20261123-bhensm]] Phase 4: meeting polls
