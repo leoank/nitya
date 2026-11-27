@@ -81,6 +81,8 @@
             cargoLock.lockFile = ./Cargo.lock;
             cargoBuildFlags = [ "--bin" name ];
             nativeBuildInputs = [ pkgs.protobuf ];
+            # rusqlite builds SQLite in, but the link still names -lsqlite3 under nix.
+            buildInputs = [ pkgs.sqlite ];
             PROTOC = "${pkgs.protobuf}/bin/protoc";
             LIBTAILSCALE_LIB_DIR = "${libtailscale}/lib";
             doCheck = false;
@@ -144,6 +146,8 @@
             inherit src;
             cargoLock.lockFile = ./Cargo.lock;
             nativeBuildInputs = [ pkgs.protobuf ];
+            # rusqlite builds SQLite in, but the link still names -lsqlite3 under nix.
+            buildInputs = [ pkgs.sqlite ];
             PROTOC = "${pkgs.protobuf}/bin/protoc";
             LIBTAILSCALE_LIB_DIR = "${libtailscale}/lib";
           };

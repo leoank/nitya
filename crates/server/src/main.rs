@@ -7,7 +7,8 @@
 //!   nitya-server --state-dir DIR devices
 //!   nitya-server --state-dir DIR revoke SERIAL
 //!
-//! The tailnet identity lives in DIR/tailnet, the CA in DIR/ca.
+//! The tailnet identity lives in DIR/tailnet; the store is DIR/nitya.db (ADR-0012), the
+//! CA's key DIR/ca.key.
 
 mod ca;
 mod devices;
@@ -74,7 +75,7 @@ async fn main() -> Result<()> {
         println!("nitya-server {}", env!("CARGO_PKG_VERSION"));
         return Ok(());
     };
-    let ca = ca::Ca::open(&dir.join("ca"))?;
+    let ca = ca::Ca::open(&dir)?;
     match cmd {
         Command::EnrollCode { account, kind, minutes } => {
             let code = ca.new_code(&account, &kind, minutes * 60, dev::now())?;
@@ -98,7 +99,7 @@ async fn main() -> Result<()> {
             Ok(())
         }
         Command::Revoke(serial) => {
-            let c = ca.revoke(serial)?;
+            let c = ca.revoke(serial, dev::now())?;
             println!("revoked {} of {} ({}): it can no longer call, renew or enroll", c.hostname, c.account, c.kind);
             Ok(())
         }

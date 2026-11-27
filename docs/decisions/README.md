@@ -16,6 +16,7 @@ and never renumbered. A decision that changes an earlier one supersedes it; both
 | [ADR-0009](ADR-0009-provider-oauth-apps-are-a-terranix-stack-here-their-secrets-agenix-in-neusis.md) | Provider OAuth apps are a terranix stack in this repo; their secrets are agenix files in neusis | accepted |
 | [ADR-0010](ADR-0010-revoking-a-device-rotates-the-data-keys-and-the-append-key-not-only-the-user-key.md) | Revoking a device rotates the data keys and the append key, not only the user key | accepted |
 | [ADR-0011](ADR-0011-grpc-api-one-time-enrollment-codes-and-nitya-s-own-device-certificates-bound-to-the-tailnet-node-id.md) | The API is gRPC; devices enroll with a one-time code and get nitya's own short-lived certificates, bound to their tailnet node id | accepted |
+| [ADR-0012](ADR-0012-the-store-is-one-sqlite-database-built-before-the-key-hierarchy.md) | The store is one SQLite database in the server's state directory, built before the key hierarchy | accepted |
 
 Each record:
 

@@ -1,18 +1,18 @@
 //! The device CA (ADR-0005, ADR-0011): one-time enrollment codes, certificates bound to a
 //! tailnet node id, signed requests, renewal and revocation by device key.
 //!
-//! Until the store (phase 1 item 4) its state is files under one directory, which the
-//! admin commands write too: `ca.key` (the CA's Ed25519 seed), `codes/<sha256 of code>`,
-//! `issued/<serial>.cert` and `revoked/<device key in hex>`.
+//! Its records are in the store (ADR-0012), which the admin commands open too; its
+//! signing key is the file `ca.key` beside the database, never in it.
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Mutex;
 
 use anyhow::{Context, Result, bail};
 use ed25519_dalek::SigningKey;
 use nitya_device as dev;
 use nitya_proto::v1::{Cert, CertBody};
+use nitya_store::Store;
 use prost::Message;
 use rand::RngCore;
 use sha2::{Digest, Sha256};
@@ -41,30 +41,33 @@ fn unauth(e: impl std::fmt::Display) -> Refused {
 }
 
 pub struct Ca {
-    dir: PathBuf,
     key: SigningKey,
+    store: Mutex<Store>,
     /// Nonces seen within the clock window, with their timestamps.
     nonces: Mutex<HashMap<Vec<u8>, i64>>,
 }
 
 impl Ca {
-    /// The CA in `dir`, made on first use.
+    /// The CA of the server's state directory `dir`, made on first use.
     pub fn open(dir: &Path) -> Result<Ca> {
         use std::os::unix::fs::PermissionsExt;
-        for d in ["", "codes", "issued", "revoked"] {
-            std::fs::create_dir_all(dir.join(d)).with_context(|| format!("creating {}", dir.join(d).display()))?;
-        }
+        std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
         std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))?;
         let key = dev::load_or_generate(&dir.join("ca.key"))?;
-        Ok(Ca { dir: dir.to_path_buf(), key, nonces: Mutex::default() })
+        let store = Store::open(&dir.join("nitya.db"))?;
+        Ok(Ca { key, store: Mutex::new(store), nonces: Mutex::default() })
+    }
+
+    fn store(&self) -> std::sync::MutexGuard<'_, Store> {
+        self.store.lock().expect("store lock")
     }
 
     pub fn public_key(&self) -> [u8; 32] {
         self.key.verifying_key().to_bytes()
     }
 
-    fn code_path(&self, code: &str) -> PathBuf {
-        self.dir.join("codes").join(dev::hex(&Sha256::digest(code.trim().as_bytes())))
+    fn code_hash(code: &str) -> Vec<u8> {
+        Sha256::digest(code.trim().as_bytes()).to_vec()
     }
 
     /// A one-time code for one device of `account` to enroll as `kind`, valid `secs`.
@@ -79,7 +82,7 @@ impl Ca {
         let mut b = [0u8; 16];
         rand::rngs::OsRng.fill_bytes(&mut b);
         let code = dev::hex(&b);
-        dev::write_private(&self.code_path(&code), format!("{account}\n{kind}\n{}\n", now + secs).as_bytes())?;
+        self.store().put_code(&Self::code_hash(&code), account, kind, now + secs, now)?;
         Ok(code)
     }
 
@@ -90,18 +93,13 @@ impl Ca {
         if node_id.is_empty() {
             return Err(Refused::Unauthenticated("the tailnet does not name the caller's node".into()));
         }
-        // Claiming the code is a rename: of two enrollments with one code, one wins.
-        let path = self.code_path(code);
-        let mut tag = [0u8; 8];
-        rand::rngs::OsRng.fill_bytes(&mut tag);
-        let claimed = path.with_extension(format!("claimed-{}", dev::hex(&tag)));
-        std::fs::rename(&path, &claimed).map_err(|_| Refused::Denied("unknown or used enrollment code".into()))?;
-        let text = std::fs::read_to_string(&claimed).unwrap_or_default();
-        let _ = std::fs::remove_file(&claimed);
-        let [account, kind, expires] = text.lines().collect::<Vec<_>>()[..] else {
-            return Err(Refused::Denied("unreadable enrollment code".into()));
-        };
-        if expires.parse::<i64>().map_or(true, |e| now > e) {
+        // Of two enrollments with one code, one claims it.
+        let code = self
+            .store()
+            .claim_code(&Self::code_hash(code))
+            .map_err(|e| Refused::Denied(format!("the store: {e:#}")))?
+            .ok_or_else(|| Refused::Denied("unknown or used enrollment code".into()))?;
+        if now > code.expires {
             return Err(Refused::Denied("the enrollment code has expired".into()));
         }
         if self.is_revoked(device_key) {
@@ -109,8 +107,8 @@ impl Ca {
         }
         self.issue(CertBody {
             serial: 0,
-            account: account.into(),
-            kind: kind.into(),
+            account: code.account,
+            kind: code.kind,
             device_key: device_key.to_vec(),
             node_id: node_id.into(),
             hostname: hostname.into(),
@@ -125,7 +123,7 @@ impl Ca {
         body.not_before = now;
         body.not_after = now + dev::CERT_LIFETIME_SECS;
         let cert = dev::issue(&self.key, &body);
-        dev::write_private(&self.dir.join("issued").join(format!("{}.cert", body.serial)), &cert.encode_to_vec())?;
+        self.store().put_cert(body.serial, &body.account, &body.device_key, body.not_after, &cert.encode_to_vec(), now)?;
         Ok(cert)
     }
 
@@ -169,39 +167,32 @@ impl Ca {
         Ok(cert)
     }
 
-    fn revoked_path(&self, device_key: &[u8]) -> PathBuf {
-        self.dir.join("revoked").join(dev::hex(device_key))
-    }
-
+    /// Revoked, or unknown because the store failed: either way, refused.
     fn is_revoked(&self, device_key: &[u8]) -> bool {
-        self.revoked_path(device_key).exists()
+        self.store().is_revoked(device_key).unwrap_or(true)
     }
 
     /// Revokes the device that certificate `serial` was issued to, for good.
-    pub fn revoke(&self, serial: u64) -> Result<CertBody> {
-        let cert = self.read_issued(&self.dir.join("issued").join(format!("{serial}.cert")))?;
-        dev::write_private(&self.revoked_path(&cert.device_key), b"")?;
+    pub fn revoke(&self, serial: u64, now: i64) -> Result<CertBody> {
+        let bytes = self.store().cert(serial)?.with_context(|| format!("no certificate with serial {serial}"))?;
+        let cert = self.read(&bytes)?;
+        self.store().revoke(&cert.device_key, now)?;
         Ok(cert)
     }
 
-    fn read_issued(&self, path: &Path) -> Result<CertBody> {
-        let bytes = std::fs::read(path).with_context(|| format!("no certificate {}", path.display()))?;
-        dev::verify_cert(&self.key.verifying_key(), &Cert::decode(bytes.as_slice())?)
+    fn read(&self, bytes: &[u8]) -> Result<CertBody> {
+        dev::verify_cert(&self.key.verifying_key(), &Cert::decode(bytes)?)
     }
 
     /// Each enrolled device's latest certificate, and whether the device is revoked.
     pub fn devices(&self) -> Result<Vec<(CertBody, bool)>> {
-        let mut latest: HashMap<Vec<u8>, CertBody> = HashMap::new();
-        for e in std::fs::read_dir(self.dir.join("issued"))? {
-            let p = e?.path();
-            if p.extension().is_some_and(|x| x == "cert") {
-                let c = self.read_issued(&p)?;
-                if latest.get(&c.device_key).is_none_or(|o| o.not_after < c.not_after) {
-                    latest.insert(c.device_key.clone(), c);
-                }
-            }
+        let certs = self.store().latest_certs()?;
+        let mut v = Vec::new();
+        for b in certs {
+            let c = self.read(&b)?;
+            let r = self.is_revoked(&c.device_key);
+            v.push((c, r));
         }
-        let mut v: Vec<_> = latest.into_values().map(|c| { let r = self.is_revoked(&c.device_key); (c, r) }).collect();
         v.sort_by(|a, b| (&a.0.account, &a.0.hostname).cmp(&(&b.0.account, &b.0.hostname)));
         Ok(v)
     }
@@ -322,7 +313,7 @@ mod tests {
         let f = enrolled();
         const RENEW: &str = "nitya.v1.Devices/Renew";
         let serial = dev::verify_cert(&f.ca.key.verifying_key(), &f.cert).unwrap().serial;
-        f.ca.revoke(serial).unwrap();
+        f.ca.revoke(serial, T).unwrap();
         assert_eq!(f.ca.authorize(&signed(&f, WHO, T), WHO, &[], "n1", T), Err(Refused::Denied("this device is revoked".into())));
         assert!(matches!(f.ca.renew(&signed(&f, RENEW, T), RENEW, &[], "n1", T), Err(Refused::Denied(_))));
         let code = f.ca.new_code("ank", "node", 900, T).unwrap();
@@ -337,10 +328,12 @@ mod tests {
     fn the_state_is_private_and_survives_a_restart() {
         use std::os::unix::fs::PermissionsExt;
         let f = enrolled();
+        let dir = f._dir.path();
         let mode = |p: &Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o777;
-        assert_eq!(mode(&f.ca.dir), 0o700);
-        assert_eq!(mode(&f.ca.dir.join("ca.key")), 0o600);
-        let again = Ca::open(&f.ca.dir).unwrap();
+        assert_eq!(mode(dir), 0o700);
+        assert_eq!(mode(&dir.join("ca.key")), 0o600);
+        assert_eq!(mode(&dir.join("nitya.db")), 0o600);
+        let again = Ca::open(dir).unwrap();
         assert_eq!(again.public_key(), f.ca.public_key());
         assert!(again.authorize(&signed(&f, WHO, T), WHO, &[], "n1", T).is_ok());
     }
