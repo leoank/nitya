@@ -13,11 +13,14 @@ namespace Nitya {
   entity Item in [Source];
   // A proposed set of writes awaiting the owner's approval (ADR-0004).
   entity Plan in [User];
+  // The account's chain of the audit log (ADR-0007, ADR-0015).
+  entity AuditLog in [User];
 
   type Write = { plan_approved: Bool };
 
   action "keys.read", "keys.write" appliesTo { principal: [Device, Agent], resource: [KeySet] };
   action "plan.approve" appliesTo { principal: [Device, Agent], resource: [Plan] };
+  action "audit.read", "audit.checkpoint" appliesTo { principal: [Device, Agent], resource: [AuditLog] };
 
   // ADR-0004's grants, each its own action; no read action is a member of another, so
   // no grant implies another.

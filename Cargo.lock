@@ -1636,6 +1636,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 
 [[package]]
+name = "nitya-audit"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ed25519-dalek",
+ "nitya-device",
+ "nitya-proto",
+ "prost",
+ "sha2 0.10.9",
+]
+
+[[package]]
 name = "nitya-device"
 version = "0.1.0"
 dependencies = [
@@ -1671,6 +1683,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "ed25519-dalek",
+ "nitya-audit",
  "nitya-device",
  "nitya-keys",
  "nitya-proto",
@@ -1699,6 +1712,7 @@ dependencies = [
  "anyhow",
  "cedar-policy",
  "ed25519-dalek",
+ "nitya-audit",
  "nitya-device",
  "nitya-keys",
  "nitya-proto",
@@ -1710,6 +1724,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "tonic",
+ "uuid",
 ]
 
 [[package]]
@@ -3068,6 +3083,17 @@ checksum = "fc1de2c688dc15305988b563c3854064043356019f97a4b46276fe734c4f07ea"
 dependencies = [
  "crypto-common 0.1.7",
  "subtle",
+]
+
+[[package]]
+name = "uuid"
+version = "1.29.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c14b15dffa2f4bd712103e857140aa04a4f2ff6e955c77d7eb8e53ee02a3b64"
+dependencies = [
+ "getrandom 0.4.3",
+ "js-sys",
+ "wasm-bindgen",
 ]
 
 [[package]]

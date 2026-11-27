@@ -8,8 +8,10 @@
 //!   nitya-server --state-dir DIR revoke SERIAL
 //!
 //! The tailnet identity lives in DIR/tailnet; the store is DIR/nitya.db (ADR-0012), the
-//! CA's key DIR/ca.key and the sync-delegate key DIR/delegate.key (ADR-0013).
+//! CA's key DIR/ca.key, the audit log's key DIR/audit.key (ADR-0015) and the sync-delegate
+//! key DIR/delegate.key (ADR-0013).
 
+mod audit;
 mod ca;
 mod devices;
 mod keys;
@@ -20,6 +22,7 @@ use std::sync::Arc;
 
 use anyhow::{Context, Result, bail};
 use nitya_device as dev;
+use nitya_proto::v1::audit_server::AuditServer;
 use nitya_proto::v1::devices_server::DevicesServer;
 use nitya_proto::v1::keys_server::KeysServer;
 use nitya_tailnet::{AuthKey, Options, Tailnet};
@@ -128,7 +131,8 @@ async fn main() -> Result<()> {
             let ca = Arc::new(ca);
             tonic::transport::Server::builder()
                 .add_service(DevicesServer::new(devices::Service { ca: ca.clone() }))
-                .add_service(KeysServer::new(keys::Service { ca, delegate_key: delegate.public(), policy }))
+                .add_service(KeysServer::new(keys::Service { ca: ca.clone(), delegate_key: delegate.public(), policy: policy.clone() }))
+                .add_service(AuditServer::new(audit::Service { ca, policy }))
                 .serve_with_incoming(tailnet.incoming(port)?)
                 .await
                 .context("serving on the tailnet")

@@ -3,7 +3,7 @@
 //! the account's keys while it works (ADR-0013).
 //!
 //!   nitya-node --state-dir DIR --hostname NAME [--authkey-file FILE] [--server nitya:7300]
-//!              [--ephemeral] enroll CODE | whoami | keys …
+//!              [--ephemeral] enroll CODE | whoami | audit verify | keys …
 //!
 //!   keys fingerprint              this device's wrap key, to compare when approving it
 //!   keys init                     the account's first keys; the recovery passphrase on stdin
@@ -12,10 +12,17 @@
 //!   keys recover                  unlock with the recovery passphrase (stdin), approve this device
 //!   keys consent CLASS | keys withdraw CLASS   the server's sync delegate for CLASS
 //!
+//!   audit verify [--all]          check the account's audit log from this device's
+//!                                 checkpoint on (--all: from the start, which also
+//!                                 catches edits to older entries' details), show what
+//!                                 is new, hand back the new head
+//!
 //! DIR holds the tailnet identity (tailnet/), the device key (device.key), its wrap key
-//! (wrap.key), its certificate (device.cert) and the server's CA key (ca.pub). Calls
-//! renew the certificate first once half its life has passed; a keys command that
-//! unlocks rotates the keys first when a device was revoked.
+//! (wrap.key), its certificate (device.cert), the server's CA key (ca.pub), the server's
+//! audit key as first seen (audit.pub) and the last checkpoint (audit.checkpoint). Calls
+//! renew the certificate first once half its life has passed; every keys command checks
+//! the audit log first and stops if its history was rewritten, and one that unlocks
+//! rotates the keys first when a device was revoked.
 
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
@@ -25,18 +32,20 @@ use anyhow::{Context, Result, bail};
 use ed25519_dalek::SigningKey;
 use nitya_device as dev;
 use nitya_keys::{CLASSES, Identity, Unlocked};
+use nitya_proto::v1::audit_client::AuditClient;
 use nitya_proto::v1::devices_client::DevicesClient;
 use nitya_proto::v1::keys_client::KeysClient;
-use nitya_proto::v1::{Cert, CertBody, EnrollRequest, GetKeysRequest, GetKeysResponse, PutKeysRequest, RenewRequest, WhoAmIRequest};
+use nitya_proto::v1::{Cert, CertBody, Checkpoint, EnrollRequest, GetKeysRequest, GetKeysResponse, PutKeysRequest, RenewRequest, SinceRequest, WhoAmIRequest};
 use nitya_tailnet::{AuthKey, Options, Tailnet};
 use prost::Message;
 use tonic::transport::Channel;
 
-const USAGE: &str = "usage: nitya-node --state-dir DIR --hostname NAME [--authkey-file F] [--server HOST:PORT] [--ephemeral] enroll CODE | whoami | keys (fingerprint | init | status | approve SERIAL FPR | recover | consent CLASS | withdraw CLASS)";
+const USAGE: &str = "usage: nitya-node --state-dir DIR --hostname NAME [--authkey-file F] [--server HOST:PORT] [--ephemeral] enroll CODE | whoami | audit verify [--all] | keys (fingerprint | init | status | approve SERIAL FPR | recover | consent CLASS | withdraw CLASS)";
 
 enum Command {
     Enroll(String),
     WhoAmI,
+    AuditVerify { all: bool },
     Keys(Vec<String>),
 }
 
@@ -61,10 +70,17 @@ fn args() -> Result<Option<Args>> {
             "--authkey-file" => authkey = Some(PathBuf::from(val()?)),
             "--server" => server = val()?,
             "--ephemeral" => ephemeral = true,
+            "--all" if matches!(cmd, Some(Command::AuditVerify { .. })) => cmd = Some(Command::AuditVerify { all: true }),
             "--version" => return Ok(None),
             "enroll" if cmd.is_none() => cmd = Some(Command::Enroll(val()?)),
             "whoami" if cmd.is_none() => cmd = Some(Command::WhoAmI),
             "keys" if cmd.is_none() => cmd = Some(Command::Keys(a.by_ref().collect())),
+            "audit" if cmd.is_none() => {
+                if val()? != "verify" {
+                    bail!("{USAGE}");
+                }
+                cmd = Some(Command::AuditVerify { all: false })
+            }
             _ => bail!("unknown argument {x}\n{USAGE}"),
         }
     }
@@ -127,6 +143,58 @@ fn passphrase(new: bool) -> Result<String> {
     let mut line = String::new();
     std::io::stdin().read_line(&mut line)?;
     Ok(line.trim_end_matches(['\r', '\n']).to_string())
+}
+
+/// Checks the account's audit log from this device's checkpoint on (ADR-0015): the
+/// server's audit key as first seen, an unbroken chain, other devices' checkpoints; then
+/// keeps and hands back the new head. Returns the entries that are new to this device.
+async fn verify_audit(channel: Channel, dir: &Path, device: &SigningKey, cert: &Cert, account: &str, all: bool) -> Result<Vec<nitya_audit::AuditEntry>> {
+    let mut client = AuditClient::new(channel);
+    let saved = match std::fs::read(dir.join("audit.checkpoint")) {
+        Ok(b) => Some(Checkpoint::decode(b.as_slice())?),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+        Err(e) => return Err(e).context("reading audit.checkpoint"),
+    };
+    let saved = saved.map(|c| nitya_audit::Head { seq: c.seq, hash: c.hash.clone() });
+    let from = if all { None } else { saved.clone() };
+    let mut req = tonic::Request::new(SinceRequest { from: from.as_ref().map_or(0, |h| h.seq) });
+    dev::sign_request(&mut req, device, cert, "nitya.v1.Audit/Since", dev::now());
+    let r = client.since(req).await.context("reading the audit log")?.into_inner();
+    let pinned = dir.join("audit.pub");
+    match std::fs::read(&pinned) {
+        Ok(k) if k != r.audit_key => bail!("the server's audit key changed since this device first saw it: the log cannot be trusted"),
+        Ok(_) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => dev::write_private(&pinned, &r.audit_key)?,
+        Err(e) => return Err(e).context("reading audit.pub"),
+    }
+    let key = dev::verifying_key(&r.audit_key)?;
+    let (head, entries) = nitya_audit::verify(&key, account, from.as_ref(), &r.entries).context("the audit log does not verify")?;
+    if let Some(c) = saved.as_ref().filter(|_| all) {
+        match r.entries.get(c.seq as usize) {
+            Some(e) if e.hash == c.hash => {}
+            Some(_) => bail!("the history was rewritten: entry {} is not the one this device checkpointed", c.seq),
+            None => bail!("the log is shorter than this device's checkpoint at entry {}", c.seq),
+        }
+    }
+    let first = entries.first().map_or(0, |e| e.seq);
+    let mut agreed = 0;
+    for c in r.checkpoints.iter().filter(|c| c.device_key != device.verifying_key().to_bytes()) {
+        if nitya_audit::verify_checkpoint(c).is_err() || c.seq < first {
+            continue;
+        }
+        match r.entries.get((c.seq - first) as usize) {
+            Some(e) if e.hash == c.hash => agreed += 1,
+            Some(_) => bail!("the history was rewritten: another device checkpointed a different entry {}", c.seq),
+            None => bail!("the log is shorter than another device's checkpoint at entry {}", c.seq),
+        }
+    }
+    let cp = nitya_audit::sign_checkpoint(device, account, &head, dev::now());
+    dev::write_private(&dir.join("audit.checkpoint"), &cp.encode_to_vec())?;
+    let mut req = tonic::Request::new(cp);
+    dev::sign_request(&mut req, device, cert, "nitya.v1.Audit/Submit", dev::now());
+    client.submit(req).await.context("handing back the checkpoint")?;
+    eprintln!("nitya-node: audit log of {account} verified to entry {}; {agreed} other device checkpoint(s) agree", head.seq);
+    Ok(entries.into_iter().skip(usize::from(from.is_some())).collect())
 }
 
 struct KeysCall {
@@ -309,8 +377,19 @@ async fn main() -> Result<()> {
             let w = client.who_am_i(req).await.context("asking the server who this node is")?.into_inner();
             println!("{} of {}: {} on node {}, serial {}, until {}", w.kind, w.account, w.hostname, w.node_id, w.serial, w.not_after);
         }
+        Command::AuditVerify { all } => {
+            let (cert, body) = current_cert(&mut client, &a.dir, &device).await?;
+            for e in verify_audit(channel, &a.dir, &device, &cert, &body.account, all).await? {
+                let who = match e.actor.split_once(':') {
+                    Some(("system", _)) | None => e.actor.clone(),
+                    Some((kind, key)) => format!("{kind}:{}", &key[..key.len().min(8)]),
+                };
+                println!("{}\t{who}\t{}\t{}\t{}\t{}", e.seq, e.action, e.resource, e.decision, e.policies.join(","));
+            }
+        }
         Command::Keys(k) => {
             let (cert, body) = current_cert(&mut client, &a.dir, &device).await?;
+            verify_audit(channel.clone(), &a.dir, &device, &cert, &body.account, false).await?;
             let mut call = KeysCall { client: KeysClient::new(channel), device, cert };
             keys(&k, &mut call, &body, &wrap).await?;
         }

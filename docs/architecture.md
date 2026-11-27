@@ -37,7 +37,8 @@ yet, and the experiments named below test what it rests on.
 - **Grant**: what an agent may do, as separate actions scoped to sources and time
   (ADR-0004, ADR-0006). **Plan**: a proposed set of writes, approved or not.
 - **Poll**: a meeting poll with invitee and response capability tokens (after @rallly).
-- **Audit entry**: append-only, hash-chained, signed (ADR-0007).
+- **Audit entry**: append-only, hash-chained, signed, one chain per account, checked by
+  its devices against their checkpoints (ADR-0007, ADR-0015).
 
 ## Components
 

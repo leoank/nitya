@@ -37,6 +37,7 @@ impl Principal {
 #[cfg_attr(not(test), allow(dead_code))]
 pub enum Resource {
     KeySet { user: String },
+    AuditLog { user: String },
     Plan { id: String, user: String },
     Source { id: String, user: String, class: String },
     Item { id: String, source: String, user: String, class: String },
@@ -130,6 +131,12 @@ impl Policy {
                 let k = uid("KeySet", user)?;
                 ents.extend([entity(u.clone(), &[], &[])?, entity(k.clone(), &[], &[u])?]);
                 k
+            }
+            Resource::AuditLog { user } => {
+                let u = uid("User", user)?;
+                let l = uid("AuditLog", user)?;
+                ents.extend([entity(u.clone(), &[], &[])?, entity(l.clone(), &[], &[u])?]);
+                l
             }
             Resource::Plan { id, user } => {
                 let u = uid("User", user)?;
@@ -250,6 +257,9 @@ mod tests {
         assert!(!p.decide(&agent("job-1"), "keys.read", &ks, false).unwrap().allowed);
         assert!(!p.decide(&Principal::of(&cert("ank", "agent")), "keys.write", &ks, false).unwrap().allowed);
         assert!(!p.decide(&agent("job-1"), "plan.approve", &Resource::Plan { id: "p1".into(), user: "ank".into() }, false).unwrap().allowed);
+        // Nor reads the audit log: no policy permits it.
+        assert!(!p.decide(&agent("job-1"), "audit.read", &Resource::AuditLog { user: "ank".into() }, false).unwrap().allowed);
+        assert!(p.decide(&device("ank"), "audit.read", &Resource::AuditLog { user: "ank".into() }, false).unwrap().allowed);
     }
 
     #[test]

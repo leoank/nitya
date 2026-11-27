@@ -2,7 +2,8 @@
 //! tailnet node id, signed requests, renewal and revocation by device key.
 //!
 //! Its records are in the store (ADR-0012), which the admin commands open too; its
-//! signing key is the file `ca.key` beside the database, never in it.
+//! signing key is the file `ca.key` beside the database, never in it. It also keeps the
+//! audit log (ADR-0007, ADR-0015), signed with `audit.key`, and records its own events.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -11,8 +12,8 @@ use std::sync::Mutex;
 use anyhow::{Context, Result, bail};
 use ed25519_dalek::SigningKey;
 use nitya_device as dev;
-use nitya_proto::v1::{Cert, CertBody, KeySet};
-use nitya_store::Store;
+use nitya_proto::v1::{AuditEntry, Cert, CertBody, KeySet};
+use nitya_store::{AuditRow, Store};
 use prost::Message;
 use rand::RngCore;
 use sha2::{Digest, Sha256};
@@ -40,8 +41,32 @@ fn unauth(e: impl std::fmt::Display) -> Refused {
     Refused::Unauthenticated(format!("{e:#}"))
 }
 
+/// One audit entry, as the server records it.
+pub struct Record {
+    pub chain: String,
+    pub actor: String,
+    pub action: String,
+    pub resource: String,
+    pub allowed: bool,
+    pub policies: Vec<String>,
+    pub detail: String,
+}
+
+impl Record {
+    /// An allowed event that no policy decided (the CA's and the admin's own).
+    pub fn system(chain: &str, actor: &str, action: &str, resource: String, detail: String) -> Record {
+        Record { chain: chain.into(), actor: actor.into(), action: action.into(), resource, allowed: true, policies: vec![], detail }
+    }
+}
+
+/// How a certificate's holder is named in the audit log.
+pub fn actor(c: &CertBody) -> String {
+    format!("{}:{}", if c.kind == "agent" { "agent" } else { "device" }, dev::hex(&c.device_key))
+}
+
 pub struct Ca {
     key: SigningKey,
+    audit_key: SigningKey,
     store: Mutex<Store>,
     /// Nonces seen within the clock window, with their timestamps.
     nonces: Mutex<HashMap<Vec<u8>, i64>>,
@@ -54,8 +79,9 @@ impl Ca {
         std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
         std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))?;
         let key = dev::load_or_generate(&dir.join("ca.key"))?;
+        let audit_key = dev::load_or_generate(&dir.join("audit.key"))?;
         let store = Store::open(&dir.join("nitya.db"))?;
-        Ok(Ca { key, store: Mutex::new(store), nonces: Mutex::default() })
+        Ok(Ca { key, audit_key, store: Mutex::new(store), nonces: Mutex::default() })
     }
 
     pub(crate) fn store(&self) -> std::sync::MutexGuard<'_, Store> {
@@ -64,6 +90,37 @@ impl Ca {
 
     pub fn public_key(&self) -> [u8; 32] {
         self.key.verifying_key().to_bytes()
+    }
+
+    pub fn audit_public_key(&self) -> [u8; 32] {
+        self.audit_key.verifying_key().to_bytes()
+    }
+
+    /// Appends one entry to `chain`'s audit log; callers act only once it is written.
+    pub fn record(&self, r: Record, now: i64) -> Result<()> {
+        let id = uuid::Uuid::now_v7().as_bytes().to_vec();
+        let entry = AuditEntry {
+            op: id.clone(),
+            id,
+            seq: 0,
+            chain: r.chain.clone(),
+            actor: r.actor,
+            action: r.action,
+            resource: r.resource,
+            decision: if r.allowed { "allow" } else { "deny" }.into(),
+            policies: r.policies,
+            time: now,
+            detail_hash: vec![],
+            prev: vec![],
+        };
+        self.store()
+            .append_audit(&r.chain, |seq, prev| {
+                let e = AuditEntry { seq, prev: prev.unwrap_or_else(|| nitya_audit::GENESIS.to_vec()), ..entry };
+                let s = nitya_audit::seal(&self.audit_key, e, r.detail.as_bytes());
+                AuditRow { seq, entry: s.entry, detail: Some(s.detail), hash: s.hash, signature: s.signature }
+            })
+            .context("writing the audit log")?;
+        Ok(())
     }
 
     fn code_hash(code: &str) -> Vec<u8> {
@@ -83,6 +140,7 @@ impl Ca {
         rand::rngs::OsRng.fill_bytes(&mut b);
         let code = dev::hex(&b);
         self.store().put_code(&Self::code_hash(&code), account, kind, now + secs, now)?;
+        self.record(Record::system(account, "system:admin", "enroll-code.issue", format!("kind:{kind}"), format!("valid {secs} s")), now)?;
         Ok(code)
     }
 
@@ -108,7 +166,7 @@ impl Ca {
         if self.is_revoked(device_key) {
             return Err(Refused::Denied("this device key is revoked".into()));
         }
-        self.issue(CertBody {
+        let cert = self.issue(CertBody {
             serial: 0,
             account: code.account,
             kind: code.kind,
@@ -119,7 +177,12 @@ impl Ca {
             not_after: 0,
             wrap_key: wrap_key.into(),
         }, now)
-        .map_err(|e| Refused::Denied(format!("issuing: {e:#}")))
+        .map_err(|e| Refused::Denied(format!("issuing: {e:#}")))?;
+        let c = self.read(&cert.encode_to_vec()).map_err(|e| Refused::Denied(format!("{e:#}")))?;
+        let detail = format!("{} on {hostname}, node {node_id}", c.kind);
+        self.record(Record::system(&c.account, "system:ca", "device.enroll", actor(&c), detail), now)
+            .map_err(|e| Refused::Denied(format!("{e:#}")))?;
+        Ok(cert)
     }
 
     fn issue(&self, mut body: CertBody, now: i64) -> Result<Cert> {
@@ -141,32 +204,53 @@ impl Ca {
     /// after its certificate's end.
     pub fn renew(&self, md: &MetadataMap, method: &str, body: &[u8], node_id: &str, now: i64) -> Result<Cert, Refused> {
         let old = self.check(md, method, body, node_id, now, dev::RENEW_GRACE_SECS)?;
-        self.issue(old, now).map_err(|e| Refused::Denied(format!("issuing: {e:#}")))
+        let (account, who) = (old.account.clone(), actor(&old));
+        let cert = self.issue(old, now).map_err(|e| Refused::Denied(format!("issuing: {e:#}")))?;
+        self.record(Record::system(&account, &who, "device.renew", who.clone(), String::new()), now)
+            .map_err(|e| Refused::Denied(format!("{e:#}")))?;
+        Ok(cert)
     }
 
     fn check(&self, md: &MetadataMap, method: &str, body: &[u8], node_id: &str, now: i64, grace: i64) -> Result<CertBody, Refused> {
         let proof = dev::read_proof(md).map_err(unauth)?;
         let cert = dev::verify_cert(&self.key.verifying_key(), &proof.cert).map_err(unauth)?;
+        // From here the account is known: a refusal goes into its audit log.
+        self.check_cert(&proof, cert, method, body, node_id, now, grace).or_else(|(cert, r)| {
+            let why = match &r {
+                Refused::Unauthenticated(m) | Refused::Denied(m) => m.clone(),
+            };
+            let a = method.rsplit('/').next().unwrap_or(method);
+            self.record(Record { allowed: false, ..Record::system(&cert.account, &actor(&cert), a, actor(&cert), why) }, now)
+                .map_err(|e| Refused::Denied(format!("{e:#}")))?;
+            Err(r)
+        })
+    }
+
+    #[allow(clippy::too_many_arguments, clippy::result_large_err)]
+    fn check_cert(&self, proof: &dev::Proof, cert: CertBody, method: &str, body: &[u8], node_id: &str, now: i64, grace: i64) -> Result<CertBody, (CertBody, Refused)> {
+        let fail = |cert: &CertBody, r: Refused| Err((cert.clone(), r));
         if now + dev::CLOCK_SKEW_SECS < cert.not_before {
-            return Err(unauth("the certificate is not valid yet"));
+            return fail(&cert, unauth("the certificate is not valid yet"));
         }
         if now > cert.not_after + grace {
-            return Err(unauth(if grace == 0 { "the certificate has expired; renew it" } else { "the certificate is too old to renew; enroll again" }));
+            return fail(&cert, unauth(if grace == 0 { "the certificate has expired; renew it" } else { "the certificate is too old to renew; enroll again" }));
         }
         if self.is_revoked(&cert.device_key) {
-            return Err(Refused::Denied("this device is revoked".into()));
+            return fail(&cert, Refused::Denied("this device is revoked".into()));
         }
         if node_id.is_empty() || node_id != cert.node_id {
-            return Err(Refused::Denied("the certificate belongs to another tailnet node".into()));
+            return fail(&cert, Refused::Denied("the certificate belongs to another tailnet node".into()));
         }
         if (proof.ts - now).abs() > dev::CLOCK_SKEW_SECS {
-            return Err(unauth("the request's timestamp is too far from the server's clock"));
+            return fail(&cert, unauth("the request's timestamp is too far from the server's clock"));
         }
-        dev::verify_request(&cert.device_key, &proof, method, body).map_err(unauth)?;
+        if let Err(e) = dev::verify_request(&cert.device_key, proof, method, body) {
+            return fail(&cert, unauth(e));
+        }
         let mut seen = self.nonces.lock().expect("nonce lock");
         seen.retain(|_, ts| (now - *ts).abs() <= 2 * dev::CLOCK_SKEW_SECS);
         if seen.insert(proof.nonce.clone(), proof.ts).is_some() {
-            return Err(unauth("the request was replayed"));
+            return fail(&cert, unauth("the request was replayed"));
         }
         Ok(cert)
     }
@@ -183,6 +267,8 @@ impl Ca {
         let cert = self.read(&bytes)?;
         self.store().revoke(&cert.device_key, now)?;
         let had_wrap = self.drop_wrap(&cert.account, &cert.device_key, now)?;
+        let detail = format!("{} on {}{}", cert.kind, cert.hostname, if had_wrap { "; its key wrap deleted, rotation pending" } else { "" });
+        self.record(Record::system(&cert.account, "system:admin", "device.revoke", actor(&cert), detail), now)?;
         Ok((cert, had_wrap))
     }
 
@@ -376,6 +462,34 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn the_cas_events_and_refusals_are_in_a_verifiable_chain() {
+        let f = enrolled();
+        let serial = dev::verify_cert(&f.ca.key.verifying_key(), &f.cert).unwrap().serial;
+        assert!(f.ca.authorize(&signed(&f, WHO, T), WHO, &[], "n2", T).is_err());
+        f.ca.revoke(serial, T).unwrap();
+        assert!(f.ca.authorize(&signed(&f, WHO, T), WHO, &[], "n1", T).is_err());
+        let rows = f.ca.store().audit_since("ank", 0).unwrap();
+        let entries: Vec<_> = rows
+            .into_iter()
+            .map(|r| nitya_audit::SignedEntry { entry: r.entry, detail: r.detail.unwrap_or_default(), hash: r.hash, signature: r.signature })
+            .collect();
+        let key = ed25519_dalek::VerifyingKey::from_bytes(&f.ca.audit_public_key()).unwrap();
+        let (_, log) = nitya_audit::verify(&key, "ank", None, &entries).unwrap();
+        let got: Vec<(&str, &str, &str)> = log.iter().map(|e| (e.actor.split(':').next().unwrap(), e.action.as_str(), e.decision.as_str())).collect();
+        assert_eq!(
+            got,
+            vec![
+                ("system", "enroll-code.issue", "allow"),
+                ("system", "device.enroll", "allow"),
+                ("device", "WhoAmI", "deny"),
+                ("system", "device.revoke", "allow"),
+                ("device", "WhoAmI", "deny"),
+            ]
+        );
+        assert_eq!(String::from_utf8_lossy(&entries[2].detail), "the certificate belongs to another tailnet node");
+    }
+
+    #[test]
     fn the_state_is_private_and_survives_a_restart() {
         use std::os::unix::fs::PermissionsExt;
         let f = enrolled();
@@ -383,6 +497,7 @@ pub(crate) mod tests {
         let mode = |p: &Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o777;
         assert_eq!(mode(dir), 0o700);
         assert_eq!(mode(&dir.join("ca.key")), 0o600);
+        assert_eq!(mode(&dir.join("audit.key")), 0o600);
         assert_eq!(mode(&dir.join("nitya.db")), 0o600);
         let again = Ca::open(dir).unwrap();
         assert_eq!(again.public_key(), f.ca.public_key());

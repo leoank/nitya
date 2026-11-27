@@ -66,6 +66,25 @@ const MIGRATIONS: &[&str] = &[
         updated INTEGER NOT NULL
     );
     ",
+    // 3: the audit log (ADR-0007, ADR-0015), one chain per account, and the devices'
+    // checkpoints; no foreign keys, entries outlive what they describe.
+    "
+    CREATE TABLE audit (
+        chain TEXT NOT NULL,
+        seq INTEGER NOT NULL,
+        entry BLOB NOT NULL,
+        detail BLOB,
+        hash BLOB NOT NULL,
+        signature BLOB NOT NULL,
+        PRIMARY KEY (chain, seq)
+    );
+    CREATE TABLE checkpoints (
+        chain TEXT NOT NULL,
+        device_key BLOB NOT NULL,
+        checkpoint BLOB NOT NULL,
+        PRIMARY KEY (chain, device_key)
+    );
+    ",
 ];
 
 pub struct Store {
@@ -108,6 +127,16 @@ pub struct KeyRow {
     pub revision: u64,
     pub rotation_pending: bool,
     pub keys: Vec<u8>,
+}
+
+/// An audit entry as the store keeps it; `detail` is `None` once redacted.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AuditRow {
+    pub seq: u64,
+    pub entry: Vec<u8>,
+    pub detail: Option<Vec<u8>>,
+    pub hash: Vec<u8>,
+    pub signature: Vec<u8>,
 }
 
 impl Store {
@@ -230,6 +259,60 @@ impl Store {
             )?
         };
         Ok((n == 1).then_some(next))
+    }
+
+    /// Appends to `chain`: `make` gets the next seq and the previous entry's hash (`None`
+    /// for the first) and returns the row. Writers in other processes wait their turn.
+    pub fn append_audit(&mut self, chain: &str, make: impl FnOnce(u64, Option<Vec<u8>>) -> AuditRow) -> Result<AuditRow> {
+        let tx = self.db.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+        let last: Option<(i64, Vec<u8>)> = tx
+            .query_row("SELECT seq, hash FROM audit WHERE chain = ?1 ORDER BY seq DESC LIMIT 1", [chain], |r| Ok((r.get(0)?, r.get(1)?)))
+            .optional()?;
+        let (seq, prev) = match last {
+            Some((s, h)) => (s as u64 + 1, Some(h)),
+            None => (0, None),
+        };
+        let row = make(seq, prev);
+        if row.seq != seq {
+            bail!("an audit entry for seq {} where {seq} is next", row.seq);
+        }
+        tx.execute(
+            "INSERT INTO audit (chain, seq, entry, detail, hash, signature) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![chain, seq as i64, row.entry, row.detail, row.hash, row.signature],
+        )?;
+        tx.commit()?;
+        Ok(row)
+    }
+
+    pub fn audit_since(&self, chain: &str, from: u64) -> Result<Vec<AuditRow>> {
+        let mut q = self.db.prepare("SELECT seq, entry, detail, hash, signature FROM audit WHERE chain = ?1 AND seq >= ?2 ORDER BY seq")?;
+        let rows = q
+            .query_map(params![chain, from as i64], |r| {
+                Ok(AuditRow { seq: r.get::<_, i64>(0)? as u64, entry: r.get(1)?, detail: r.get(2)?, hash: r.get(3)?, signature: r.get(4)? })
+            })?
+            .collect::<Result<_, _>>()?;
+        Ok(rows)
+    }
+
+    /// Drops an entry's detail (personal data); its hash stays in the entry, so the chain
+    /// still verifies.
+    pub fn redact_audit(&self, chain: &str, seq: u64) -> Result<bool> {
+        Ok(self.db.execute("UPDATE audit SET detail = NULL WHERE chain = ?1 AND seq = ?2", params![chain, seq as i64])? == 1)
+    }
+
+    pub fn put_checkpoint(&self, chain: &str, device_key: &[u8], checkpoint: &[u8]) -> Result<()> {
+        self.db.execute(
+            "INSERT INTO checkpoints (chain, device_key, checkpoint) VALUES (?1, ?2, ?3)
+             ON CONFLICT (chain, device_key) DO UPDATE SET checkpoint = excluded.checkpoint",
+            params![chain, device_key, checkpoint],
+        )?;
+        Ok(())
+    }
+
+    pub fn checkpoints(&self, chain: &str) -> Result<Vec<Vec<u8>>> {
+        let mut q = self.db.prepare("SELECT checkpoint FROM checkpoints WHERE chain = ?1 ORDER BY device_key")?;
+        let rows = q.query_map([chain], |r| r.get(0))?.collect::<Result<_, _>>()?;
+        Ok(rows)
     }
 
     /// The channel's id, made if it does not exist.
@@ -377,6 +460,24 @@ mod tests {
         assert_eq!(s.put_key_set("ank", 1, b"k2", true, 2).unwrap(), Some(2));
         assert_eq!(s.put_key_set("ank", 1, b"stale", false, 3).unwrap(), None);
         assert_eq!(s.key_set("ank").unwrap(), Some(KeyRow { revision: 2, rotation_pending: true, keys: b"k2".to_vec() }));
+    }
+
+    #[test]
+    fn audit_chains_append_in_order_per_account() {
+        let (_d, mut s) = store();
+        let row = |seq: u64, prev: Option<Vec<u8>>| AuditRow { seq, entry: prev.unwrap_or_default(), detail: Some(b"d".to_vec()), hash: vec![seq as u8], signature: vec![] };
+        s.append_audit("ank", row).unwrap();
+        s.append_audit("ank", row).unwrap();
+        s.append_audit("other", row).unwrap();
+        let ank = s.audit_since("ank", 0).unwrap();
+        assert_eq!(ank.iter().map(|r| (r.seq, r.entry.clone())).collect::<Vec<_>>(), vec![(0, vec![]), (1, vec![0])]);
+        assert_eq!(s.audit_since("ank", 1).unwrap().len(), 1);
+        assert_eq!(s.audit_since("other", 0).unwrap().len(), 1);
+        assert!(s.redact_audit("ank", 0).unwrap());
+        assert_eq!(s.audit_since("ank", 0).unwrap()[0].detail, None);
+        s.put_checkpoint("ank", b"k1", b"c1").unwrap();
+        s.put_checkpoint("ank", b"k1", b"c2").unwrap();
+        assert_eq!(s.checkpoints("ank").unwrap(), vec![b"c2".to_vec()]);
     }
 
     #[test]

@@ -19,6 +19,7 @@ and never renumbered. A decision that changes an earlier one supersedes it; both
 | [ADR-0012](ADR-0012-the-store-is-one-sqlite-database-built-before-the-key-hierarchy.md) | The store is one SQLite database in the server's state directory, built before the key hierarchy | accepted |
 | [ADR-0013](ADR-0013-the-account-s-keys-are-one-key-set-devices-write-whole-new-devices-approved-by-fingerprint.md) | An account's keys are one key set its devices write whole; a new device gets them only by approval on a device, by fingerprint | accepted |
 | [ADR-0014](ADR-0014-devices-act-as-their-user-agents-hold-only-grants-each-grant-a-linked-cedar-template.md) | Devices act as their user; agents hold only grants, each grant a linked Cedar template | accepted |
+| [ADR-0015](ADR-0015-one-audit-chain-per-account-checked-by-its-devices-before-every-keys-command.md) | One audit chain per account, checked by its devices before every keys command | accepted |
 
 Each record:
 

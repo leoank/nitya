@@ -83,7 +83,8 @@ fn signature(bytes: &[u8]) -> Result<Signature> {
     Signature::from_slice(bytes).context("not an Ed25519 signature")
 }
 
-fn tagged(tag: &[u8], parts: &[&[u8]]) -> Vec<u8> {
+/// A tag, then each part prefixed with its length: no two inputs share an encoding.
+pub fn tagged(tag: &[u8], parts: &[&[u8]]) -> Vec<u8> {
     let mut m = tag.to_vec();
     for p in parts {
         m.extend_from_slice(&(p.len() as u64).to_be_bytes());

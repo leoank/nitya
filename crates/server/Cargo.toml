@@ -12,6 +12,7 @@ path = "src/main.rs"
 anyhow = "1.0.104"
 cedar-policy = "4.15.0"
 ed25519-dalek = "2"
+nitya-audit = { path = "../audit" }
 nitya-device = { path = "../device" }
 nitya-keys = { path = "../keys" }
 nitya-proto = { path = "../proto" }
@@ -22,6 +23,7 @@ rand = "0.8"
 sha2 = "0.10"
 tokio = { version = "1.53.3", features = ["rt-multi-thread", "macros"] }
 tonic = "0.14.6"
+uuid = { version = "1", features = ["v7"] }
 
 [dev-dependencies]
 age = "0.11"

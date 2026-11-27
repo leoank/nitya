@@ -1,0 +1,71 @@
+// Audit: the signed, hash-chained log of every decision (ADR-0007, ADR-0015). One chain
+// per account; devices check it against their checkpoints.
+syntax = "proto3";
+
+package nitya.v1;
+
+message AuditEntry {
+  // A UUIDv7, 16 bytes.
+  bytes id = 1;
+  // The entry's place in its chain, from 0.
+  uint64 seq = 2;
+  // The account whose chain this is.
+  string chain = 3;
+  // Correlates the entries of one operation.
+  bytes op = 4;
+  // device:<key hex>, agent:<key hex>, system:ca, system:admin.
+  string actor = 5;
+  string action = 6;
+  string resource = 7;
+  // allow or deny.
+  string decision = 8;
+  // The ids of the policies that made the decision (ADR-0006).
+  repeated string policies = 9;
+  // Unix seconds.
+  int64 time = 10;
+  // SHA-256 of the entry's detail, which can be redacted without breaking the chain.
+  bytes detail_hash = 11;
+  // The hash of the previous entry; 32 zero bytes for the first.
+  bytes prev = 12;
+}
+
+message SignedEntry {
+  // An encoded AuditEntry; its hash is SHA-256 over "nitya-audit-v1\0" and these bytes.
+  bytes entry = 1;
+  // Personal data the entry is about (a hostname, a reason); empty once redacted.
+  bytes detail = 2;
+  bytes hash = 3;
+  // The server's audit key's Ed25519 signature over the hash.
+  bytes signature = 4;
+}
+
+// A device's record of the chain's head it verified, signed by its device key over
+// "nitya-checkpoint-v1\0", chain, seq and hash.
+message Checkpoint {
+  string chain = 1;
+  uint64 seq = 2;
+  bytes hash = 3;
+  bytes device_key = 4;
+  int64 time = 5;
+  bytes signature = 6;
+}
+
+service Audit {
+  // The caller's account's entries from `from` on, the server's audit key, and the other
+  // devices' checkpoints; signed.
+  rpc Since(SinceRequest) returns (SinceResponse);
+  // Stores the caller's checkpoint, for other devices to compare; signed.
+  rpc Submit(Checkpoint) returns (SubmitResponse);
+}
+
+message SinceRequest {
+  uint64 from = 1;
+}
+
+message SinceResponse {
+  repeated SignedEntry entries = 1;
+  bytes audit_key = 2;
+  repeated Checkpoint checkpoints = 3;
+}
+
+message SubmitResponse {}
