@@ -17,6 +17,7 @@ and never renumbered. A decision that changes an earlier one supersedes it; both
 | [ADR-0010](ADR-0010-revoking-a-device-rotates-the-data-keys-and-the-append-key-not-only-the-user-key.md) | Revoking a device rotates the data keys and the append key, not only the user key | accepted |
 | [ADR-0011](ADR-0011-grpc-api-one-time-enrollment-codes-and-nitya-s-own-device-certificates-bound-to-the-tailnet-node-id.md) | The API is gRPC; devices enroll with a one-time code and get nitya's own short-lived certificates, bound to their tailnet node id | accepted |
 | [ADR-0012](ADR-0012-the-store-is-one-sqlite-database-built-before-the-key-hierarchy.md) | The store is one SQLite database in the server's state directory, built before the key hierarchy | accepted |
+| [ADR-0013](ADR-0013-the-account-s-keys-are-one-key-set-devices-write-whole-new-devices-approved-by-fingerprint.md) | An account's keys are one key set its devices write whole; a new device gets them only by approval on a device, by fingerprint | accepted |
 
 Each record:
 

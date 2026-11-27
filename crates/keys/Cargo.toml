@@ -1,0 +1,19 @@
+[package]
+name = "nitya-keys"
+description = "The per-account key hierarchy and the sync delegate (ADR-0005, ADR-0010, ADR-0013)"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+age = "0.11"
+anyhow = "1.0.104"
+argon2 = "0.5"
+chacha20poly1305 = "0.10"
+nitya-device = { path = "../device" }
+nitya-proto = { path = "../proto" }
+rand = "0.8"
+sha2 = "0.10"
+zeroize = "1"
+
+[dev-dependencies]
+tempfile = "3.27.0"

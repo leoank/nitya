@@ -8,10 +8,11 @@
 //!   nitya-server --state-dir DIR revoke SERIAL
 //!
 //! The tailnet identity lives in DIR/tailnet; the store is DIR/nitya.db (ADR-0012), the
-//! CA's key DIR/ca.key.
+//! CA's key DIR/ca.key and the sync-delegate key DIR/delegate.key (ADR-0013).
 
 mod ca;
 mod devices;
+mod keys;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -19,6 +20,7 @@ use std::sync::Arc;
 use anyhow::{Context, Result, bail};
 use nitya_device as dev;
 use nitya_proto::v1::devices_server::DevicesServer;
+use nitya_proto::v1::keys_server::KeysServer;
 use nitya_tailnet::{AuthKey, Options, Tailnet};
 
 /// The port nitya's server listens on, on its tailnet identity.
@@ -99,8 +101,11 @@ async fn main() -> Result<()> {
             Ok(())
         }
         Command::Revoke(serial) => {
-            let c = ca.revoke(serial, dev::now())?;
+            let (c, had_wrap) = ca.revoke(serial, dev::now())?;
             println!("revoked {} of {} ({}): it can no longer call, renew or enroll", c.hostname, c.account, c.kind);
+            if had_wrap {
+                println!("its wrap of the account's keys is deleted; the next device of {} to unlock rotates them", c.account);
+            }
             Ok(())
         }
         Command::Serve { hostname, authkey, port, ephemeral } => {
@@ -113,9 +118,14 @@ async fn main() -> Result<()> {
                 give_up_after: None,
             })
             .await?;
+            // Kept in a file beside the store until the NixOS module passes it as a systemd
+            // credential (phase 1 item 7); sync uses it to seal and open consented classes.
+            let delegate = nitya_keys::Delegate::load_or_generate(&dir.join("delegate.key"))?;
             eprintln!("nitya-server: on tailnet as {hostname} ({}), port {port}", tailnet.ips());
+            let ca = Arc::new(ca);
             tonic::transport::Server::builder()
-                .add_service(DevicesServer::new(devices::Service { ca: Arc::new(ca) }))
+                .add_service(DevicesServer::new(devices::Service { ca: ca.clone() }))
+                .add_service(KeysServer::new(keys::Service { ca, delegate_key: delegate.public() }))
                 .serve_with_incoming(tailnet.incoming(port)?)
                 .await
                 .context("serving on the tailnet")

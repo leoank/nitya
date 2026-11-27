@@ -18,6 +18,9 @@ message CertBody {
   // Unix seconds.
   int64 not_before = 7;
   int64 not_after = 8;
+  // The device's X25519 key that the account's user key is wrapped to, as an age
+  // recipient (ADR-0013); separate from device_key, which only signs.
+  string wrap_key = 9;
 }
 
 message Cert {
@@ -41,8 +44,9 @@ service Devices {
 message EnrollRequest {
   string code = 1;
   bytes device_key = 2;
-  // The device's signature over "nitya-enroll-v1\0", code and device_key.
+  // The device's signature over "nitya-enroll-v1\0", code, device_key and wrap_key.
   bytes proof = 3;
+  string wrap_key = 4;
 }
 
 message EnrollResponse {

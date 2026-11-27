@@ -1,6 +1,6 @@
 //! nitya's store (ADR-0003, ADR-0012): one SQLite database in the server's state
-//! directory. Accounts, the device CA's records, and channels and items. Items arrive
-//! sealed; the store never sees a key.
+//! directory. Accounts, the device CA's records, each account's wrapped keys, and
+//! channels and items. Items arrive sealed; the store never sees an unwrapped key.
 
 use std::path::Path;
 
@@ -56,6 +56,16 @@ const MIGRATIONS: &[&str] = &[
         UNIQUE (channel_id, provider_id)
     );
     ",
+    // 2: each account's key set (ADR-0013), written whole by its devices.
+    "
+    CREATE TABLE key_sets (
+        account_id INTEGER PRIMARY KEY REFERENCES accounts(id),
+        revision INTEGER NOT NULL,
+        rotation_pending INTEGER NOT NULL DEFAULT 0,
+        keys BLOB NOT NULL,
+        updated INTEGER NOT NULL
+    );
+    ",
 ];
 
 pub struct Store {
@@ -90,6 +100,14 @@ pub struct Item {
     pub key_version: u32,
     pub sealed: Vec<u8>,
     pub updated: i64,
+}
+
+/// An account's key set as the store keeps it: encoded, with its revision.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeyRow {
+    pub revision: u64,
+    pub rotation_pending: bool,
+    pub keys: Vec<u8>,
 }
 
 impl Store {
@@ -182,6 +200,36 @@ impl Store {
 
     pub fn is_revoked(&self, device_key: &[u8]) -> Result<bool> {
         Ok(self.db.query_row("SELECT 1 FROM revoked WHERE device_key = ?1", [device_key], |_| Ok(())).optional()?.is_some())
+    }
+
+    pub fn key_set(&self, account: &str) -> Result<Option<KeyRow>> {
+        Ok(self
+            .db
+            .query_row(
+                "SELECT revision, rotation_pending, keys FROM key_sets k JOIN accounts a ON a.id = account_id WHERE a.name = ?1",
+                [account],
+                |r| Ok(KeyRow { revision: r.get::<_, i64>(0)? as u64, rotation_pending: r.get(1)?, keys: r.get(2)? }),
+            )
+            .optional()?)
+    }
+
+    /// Replaces the account's key set if it is still at revision `base` (0: there is none
+    /// yet), and returns the new revision; `None` when another write came first.
+    pub fn put_key_set(&self, account: &str, base: u64, keys: &[u8], rotation_pending: bool, now: i64) -> Result<Option<u64>> {
+        let id = self.account(account, now)?;
+        let next = base + 1;
+        let n = if base == 0 {
+            self.db.execute(
+                "INSERT OR IGNORE INTO key_sets (account_id, revision, rotation_pending, keys, updated) VALUES (?1, 1, ?2, ?3, ?4)",
+                params![id, rotation_pending, keys, now],
+            )?
+        } else {
+            self.db.execute(
+                "UPDATE key_sets SET revision = ?3, rotation_pending = ?4, keys = ?5, updated = ?6 WHERE account_id = ?1 AND revision = ?2",
+                params![id, base as i64, next as i64, rotation_pending, keys, now],
+            )?
+        };
+        Ok((n == 1).then_some(next))
     }
 
     /// The channel's id, made if it does not exist.
@@ -318,6 +366,17 @@ mod tests {
         s.revoke(b"k1", 5).unwrap();
         s.revoke(b"k1", 6).unwrap();
         assert!(s.is_revoked(b"k1").unwrap() && !s.is_revoked(b"k2").unwrap());
+    }
+
+    #[test]
+    fn a_key_set_is_replaced_only_from_its_current_revision() {
+        let (_d, s) = store();
+        assert_eq!(s.key_set("ank").unwrap(), None);
+        assert_eq!(s.put_key_set("ank", 0, b"k1", false, 1).unwrap(), Some(1));
+        assert_eq!(s.put_key_set("ank", 0, b"other", false, 1).unwrap(), None);
+        assert_eq!(s.put_key_set("ank", 1, b"k2", true, 2).unwrap(), Some(2));
+        assert_eq!(s.put_key_set("ank", 1, b"stale", false, 3).unwrap(), None);
+        assert_eq!(s.key_set("ank").unwrap(), Some(KeyRow { revision: 2, rotation_pending: true, keys: b"k2".to_vec() }));
     }
 
     #[test]

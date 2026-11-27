@@ -22,10 +22,12 @@ yet, and the experiments named below test what it rests on.
   this repo's flake; one developer with agents; no deadline.
 
 ## Data model
-- **Account**: one person on the server; owns everything below and its user key.
+- **Account**: one person on the server; owns everything below and its user key, in one
+  key set of wraps that its devices read and write whole (ADR-0010, ADR-0013).
 - **Device**: a node, an app install, or an agent job; an Ed25519 key and a short-lived
   certificate from the server, bound to its tailnet node id and got with a one-time
-  enrollment code (ADR-0011); a wrap of the account's user key (ADR-0005).
+  enrollment code (ADR-0011); an X25519 wrap key, to which the account's user key is
+  wrapped once an unlocked device approves it by fingerprint (ADR-0005, ADR-0013).
 - **Channel**: one provider account and data class (a Google calendar list, an IMAP
   mailbox); a driver, an opaque cursor, a sync stage (ADR-0003).
 - **Item**: an event (raw iCalendar), a message (raw MIME), a task; provider ids and etags;
@@ -78,8 +80,8 @@ flowchart LR
 
 ## Stack
 - Rust for the server and node, like saarthi (ADR-0001); saarthi's tailnet crate, copied
-  as sandhi did; the API is gRPC with tonic, every call signed by the device (ADR-0011); one SQLite database as the store (ADR-0012); Cedar for policy (ADR-0006); age/HPKE key wrapping and AEAD from
-  RustCrypto (ADR-0005); candidates to evaluate: pimalaya crates for mail (@himalaya),
+  as sandhi did; the API is gRPC with tonic, every call signed by the device (ADR-0011); one SQLite database as the store (ADR-0012); Cedar for policy (ADR-0006); age X25519 key wrapping and AEAD from
+  RustCrypto (ADR-0005, ADR-0013); candidates to evaluate: pimalaya crates for mail (@himalaya),
   an iCalendar crate chosen by [[EXP-20261123-bhfzfs]].
 - Nix flake for the dev shell, packages, NixOS module (server) and home-manager module
   (node), with module tests, as saarthi and sandhi do.

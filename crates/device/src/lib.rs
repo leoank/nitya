@@ -106,17 +106,18 @@ pub fn verify_cert(ca: &VerifyingKey, cert: &Cert) -> Result<CertBody> {
     CertBody::decode(cert.body.as_slice()).context("the certificate does not decode")
 }
 
-/// The device's proof, at enrollment, that it holds the key it enrolls.
-pub fn enroll_proof(device: &SigningKey, code: &str) -> Vec<u8> {
+/// The device's proof, at enrollment, that it holds the key it enrolls, and which wrap
+/// key (an age recipient, ADR-0013) goes with it.
+pub fn enroll_proof(device: &SigningKey, code: &str, wrap_key: &str) -> Vec<u8> {
     device
-        .sign(&tagged(ENROLL_TAG, &[code.as_bytes(), device.verifying_key().as_bytes()]))
+        .sign(&tagged(ENROLL_TAG, &[code.as_bytes(), device.verifying_key().as_bytes(), wrap_key.as_bytes()]))
         .to_bytes()
         .to_vec()
 }
 
-pub fn verify_enroll_proof(device_key: &[u8], code: &str, proof: &[u8]) -> Result<()> {
+pub fn verify_enroll_proof(device_key: &[u8], code: &str, wrap_key: &str, proof: &[u8]) -> Result<()> {
     verifying_key(device_key)?
-        .verify(&tagged(ENROLL_TAG, &[code.as_bytes(), device_key]), &signature(proof)?)
+        .verify(&tagged(ENROLL_TAG, &[code.as_bytes(), device_key, wrap_key.as_bytes()]), &signature(proof)?)
         .context("the enrollment proof does not verify")
 }
 
@@ -200,6 +201,7 @@ mod tests {
             hostname: "rogue".into(),
             not_before: 100,
             not_after: 200,
+            wrap_key: "age1wrap".into(),
         }
     }
 
@@ -216,13 +218,14 @@ mod tests {
     }
 
     #[test]
-    fn the_enrollment_proof_binds_the_code_and_the_key() {
+    fn the_enrollment_proof_binds_the_code_and_both_keys() {
         let (dev, other) = (generate(), generate());
         let key = dev.verifying_key().to_bytes();
-        let proof = enroll_proof(&dev, "code-1");
-        verify_enroll_proof(&key, "code-1", &proof).unwrap();
-        assert!(verify_enroll_proof(&key, "code-2", &proof).is_err());
-        assert!(verify_enroll_proof(&other.verifying_key().to_bytes(), "code-1", &proof).is_err());
+        let proof = enroll_proof(&dev, "code-1", "age1a");
+        verify_enroll_proof(&key, "code-1", "age1a", &proof).unwrap();
+        assert!(verify_enroll_proof(&key, "code-2", "age1a", &proof).is_err());
+        assert!(verify_enroll_proof(&key, "code-1", "age1b", &proof).is_err());
+        assert!(verify_enroll_proof(&other.verifying_key().to_bytes(), "code-1", "age1a", &proof).is_err());
     }
 
     #[test]

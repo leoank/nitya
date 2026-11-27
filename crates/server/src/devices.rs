@@ -17,7 +17,7 @@ pub struct Service {
 }
 
 /// The tailnet node and hostname of the caller, from the server's own tailnet status.
-async fn caller<T>(req: &Request<T>) -> Result<(String, String), Status> {
+pub(crate) async fn caller<T>(req: &Request<T>) -> Result<(String, String), Status> {
     let remote = req.extensions().get::<Remote>().ok_or_else(|| Status::unauthenticated("not a tailnet connection"))?;
     let peer = remote.peer().await.ok_or_else(|| Status::unauthenticated("the tailnet does not name the caller"))?;
     Ok((peer.node_id, peer.host))
@@ -28,7 +28,7 @@ impl Devices for Service {
     async fn enroll(&self, req: Request<EnrollRequest>) -> Result<Response<EnrollResponse>, Status> {
         let (node, host) = caller(&req).await?;
         let r = req.get_ref();
-        let cert = self.ca.enroll(&r.code, &r.device_key, &r.proof, &node, &host, dev::now())?;
+        let cert = self.ca.enroll(&r.code, &r.device_key, &r.wrap_key, &r.proof, &node, &host, dev::now())?;
         eprintln!("nitya-server: enrolled {host} (node {node})");
         Ok(Response::new(EnrollResponse { cert: Some(cert), ca_key: self.ca.public_key().to_vec() }))
     }

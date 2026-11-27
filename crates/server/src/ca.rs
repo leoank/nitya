@@ -11,7 +11,7 @@ use std::sync::Mutex;
 use anyhow::{Context, Result, bail};
 use ed25519_dalek::SigningKey;
 use nitya_device as dev;
-use nitya_proto::v1::{Cert, CertBody};
+use nitya_proto::v1::{Cert, CertBody, KeySet};
 use nitya_store::Store;
 use prost::Message;
 use rand::RngCore;
@@ -58,7 +58,7 @@ impl Ca {
         Ok(Ca { key, store: Mutex::new(store), nonces: Mutex::default() })
     }
 
-    fn store(&self) -> std::sync::MutexGuard<'_, Store> {
+    pub(crate) fn store(&self) -> std::sync::MutexGuard<'_, Store> {
         self.store.lock().expect("store lock")
     }
 
@@ -86,10 +86,13 @@ impl Ca {
         Ok(code)
     }
 
-    /// Enrolls the device holding `device_key`, calling from tailnet node `node_id`, with
-    /// a code from `new_code`. The code is used up whatever the outcome after the proof.
-    pub fn enroll(&self, code: &str, device_key: &[u8], proof: &[u8], node_id: &str, hostname: &str, now: i64) -> Result<Cert, Refused> {
-        dev::verify_enroll_proof(device_key, code.trim(), proof).map_err(unauth)?;
+    /// Enrolls the device holding `device_key`, with `wrap_key` for the account's keys,
+    /// calling from tailnet node `node_id`, with a code from `new_code`. The code is used
+    /// up whatever the outcome after the proof.
+    #[allow(clippy::too_many_arguments)]
+    pub fn enroll(&self, code: &str, device_key: &[u8], wrap_key: &str, proof: &[u8], node_id: &str, hostname: &str, now: i64) -> Result<Cert, Refused> {
+        dev::verify_enroll_proof(device_key, code.trim(), wrap_key, proof).map_err(unauth)?;
+        nitya_keys::recipient(wrap_key).map_err(unauth)?;
         if node_id.is_empty() {
             return Err(Refused::Unauthenticated("the tailnet does not name the caller's node".into()));
         }
@@ -114,6 +117,7 @@ impl Ca {
             hostname: hostname.into(),
             not_before: 0,
             not_after: 0,
+            wrap_key: wrap_key.into(),
         }, now)
         .map_err(|e| Refused::Denied(format!("issuing: {e:#}")))
     }
@@ -172,12 +176,33 @@ impl Ca {
         self.store().is_revoked(device_key).unwrap_or(true)
     }
 
-    /// Revokes the device that certificate `serial` was issued to, for good.
-    pub fn revoke(&self, serial: u64, now: i64) -> Result<CertBody> {
+    /// Revokes the device that certificate `serial` was issued to, for good; returns it,
+    /// and whether it held a wrap of its account's keys, which then need rotating.
+    pub fn revoke(&self, serial: u64, now: i64) -> Result<(CertBody, bool)> {
         let bytes = self.store().cert(serial)?.with_context(|| format!("no certificate with serial {serial}"))?;
         let cert = self.read(&bytes)?;
         self.store().revoke(&cert.device_key, now)?;
-        Ok(cert)
+        let had_wrap = self.drop_wrap(&cert.account, &cert.device_key, now)?;
+        Ok((cert, had_wrap))
+    }
+
+    /// Deletes a revoked device's wrap of the account's keys and flags the account: the
+    /// next device to unlock rotates them (ADR-0010, ADR-0013).
+    fn drop_wrap(&self, account: &str, device_key: &[u8], now: i64) -> Result<bool> {
+        let store = self.store();
+        loop {
+            let Some(row) = store.key_set(account)? else { return Ok(false) };
+            let mut keys = KeySet::decode(row.keys.as_slice())?;
+            let before = keys.devices.len();
+            keys.devices.retain(|d| d.device_key != device_key);
+            if keys.devices.len() == before {
+                return Ok(false);
+            }
+            // Another process (the server, or another admin command) may write in between.
+            if store.put_key_set(account, row.revision, &keys.encode_to_vec(), true, now)?.is_some() {
+                return Ok(true);
+            }
+        }
     }
 
     fn read(&self, bytes: &[u8]) -> Result<CertBody> {
@@ -199,12 +224,18 @@ impl Ca {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use nitya_proto::v1::WhoAmIRequest;
 
     const WHO: &str = "nitya.v1.Devices/WhoAmI";
     const T: i64 = 1_800_000_000;
+    /// A wrap key (an age recipient) for the test devices.
+    pub(crate) static W: std::sync::LazyLock<String> = std::sync::LazyLock::new(wrap_key);
+
+    pub(crate) fn wrap_key() -> String {
+        age::x25519::Identity::generate().to_public().to_string()
+    }
 
     struct Fixture {
         _dir: tempfile::TempDir,
@@ -219,7 +250,7 @@ mod tests {
         let dev = dev::generate();
         let code = ca.new_code("ank", "node", 900, T).unwrap();
         let key = dev.verifying_key().to_bytes();
-        let cert = ca.enroll(&code, &key, &dev::enroll_proof(&dev, &code), "n1", "rogue", T).unwrap();
+        let cert = ca.enroll(&code, &key, &W, &dev::enroll_proof(&dev, &code, &W), "n1", "rogue", T).unwrap();
         Fixture { _dir: dir, ca, dev, cert }
     }
 
@@ -236,6 +267,7 @@ mod tests {
         assert_eq!((c.account.as_str(), c.kind.as_str(), c.node_id.as_str(), c.hostname.as_str()), ("ank", "node", "n1", "rogue"));
         assert_eq!(c.device_key, f.dev.verifying_key().to_bytes());
         assert_eq!(c.not_after - c.not_before, dev::CERT_LIFETIME_SECS);
+        assert_eq!(c.wrap_key, *W);
     }
 
     #[test]
@@ -244,12 +276,12 @@ mod tests {
         let d = dev::generate();
         let key = d.verifying_key().to_bytes();
         let code = f.ca.new_code("ank", "app", 900, T).unwrap();
-        let proof = dev::enroll_proof(&d, &code);
-        assert!(f.ca.enroll(&code, &key, &proof, "n2", "phone", T).is_ok());
-        assert!(matches!(f.ca.enroll(&code, &key, &proof, "n2", "phone", T), Err(Refused::Denied(_))));
+        let proof = dev::enroll_proof(&d, &code, &W);
+        assert!(f.ca.enroll(&code, &key, &W, &proof, "n2", "phone", T).is_ok());
+        assert!(matches!(f.ca.enroll(&code, &key, &W, &proof, "n2", "phone", T), Err(Refused::Denied(_))));
         let late = f.ca.new_code("ank", "app", 900, T).unwrap();
-        let proof = dev::enroll_proof(&d, &late);
-        assert_eq!(f.ca.enroll(&late, &key, &proof, "n2", "phone", T + 901), Err(Refused::Denied("the enrollment code has expired".into())));
+        let proof = dev::enroll_proof(&d, &late, &W);
+        assert_eq!(f.ca.enroll(&late, &key, &W, &proof, "n2", "phone", T + 901), Err(Refused::Denied("the enrollment code has expired".into())));
         assert!(f.ca.new_code("ank", "admin", 900, T).is_err());
     }
 
@@ -258,9 +290,13 @@ mod tests {
         let f = enrolled();
         let (d, thief) = (dev::generate(), dev::generate());
         let code = f.ca.new_code("ank", "node", 900, T).unwrap();
-        let bad = f.ca.enroll(&code, &thief.verifying_key().to_bytes(), &dev::enroll_proof(&d, &code), "n3", "x", T);
+        let bad = f.ca.enroll(&code, &thief.verifying_key().to_bytes(), &W, &dev::enroll_proof(&d, &code, &W), "n3", "x", T);
         assert!(matches!(bad, Err(Refused::Unauthenticated(_))));
-        assert!(f.ca.enroll(&code, &d.verifying_key().to_bytes(), &dev::enroll_proof(&d, &code), "n3", "x", T).is_ok());
+        // A wrap key that is not an age recipient, or not the one the proof signed.
+        let other = &wrap_key();
+        assert!(f.ca.enroll(&code, &d.verifying_key().to_bytes(), "x", &dev::enroll_proof(&d, &code, "x"), "n3", "x", T).is_err());
+        assert!(f.ca.enroll(&code, &d.verifying_key().to_bytes(), other, &dev::enroll_proof(&d, &code, &W), "n3", "x", T).is_err());
+        assert!(f.ca.enroll(&code, &d.verifying_key().to_bytes(), &W, &dev::enroll_proof(&d, &code, &W), "n3", "x", T).is_ok());
     }
 
     #[test]
@@ -302,7 +338,7 @@ mod tests {
         let new = f.ca.renew(&signed(&f, RENEW, later), RENEW, &[], "n1", later).unwrap();
         let (old, new) = (dev::verify_cert(&f.ca.key.verifying_key(), &f.cert).unwrap(), dev::verify_cert(&f.ca.key.verifying_key(), &new).unwrap());
         assert_ne!(old.serial, new.serial);
-        assert_eq!((&old.account, &old.device_key, &old.node_id), (&new.account, &new.device_key, &new.node_id));
+        assert_eq!((&old.account, &old.device_key, &old.node_id, &old.wrap_key), (&new.account, &new.device_key, &new.node_id, &new.wrap_key));
         assert_eq!(new.not_before, later);
         let too_late = T + dev::CERT_LIFETIME_SECS + dev::RENEW_GRACE_SECS + 1;
         assert!(matches!(f.ca.renew(&signed(&f, RENEW, too_late), RENEW, &[], "n1", too_late), Err(Refused::Unauthenticated(_))));
@@ -313,15 +349,30 @@ mod tests {
         let f = enrolled();
         const RENEW: &str = "nitya.v1.Devices/Renew";
         let serial = dev::verify_cert(&f.ca.key.verifying_key(), &f.cert).unwrap().serial;
-        f.ca.revoke(serial, T).unwrap();
+        assert!(!f.ca.revoke(serial, T).unwrap().1);
         assert_eq!(f.ca.authorize(&signed(&f, WHO, T), WHO, &[], "n1", T), Err(Refused::Denied("this device is revoked".into())));
         assert!(matches!(f.ca.renew(&signed(&f, RENEW, T), RENEW, &[], "n1", T), Err(Refused::Denied(_))));
         let code = f.ca.new_code("ank", "node", 900, T).unwrap();
-        let again = f.ca.enroll(&code, &f.dev.verifying_key().to_bytes(), &dev::enroll_proof(&f.dev, &code), "n1", "rogue", T);
+        let again = f.ca.enroll(&code, &f.dev.verifying_key().to_bytes(), &W, &dev::enroll_proof(&f.dev, &code, &W), "n1", "rogue", T);
         assert_eq!(again, Err(Refused::Denied("this device key is revoked".into())));
         let list = f.ca.devices().unwrap();
         assert_eq!(list.len(), 1);
         assert!(list[0].1);
+    }
+
+    #[test]
+    fn revoking_a_device_with_a_wrap_deletes_it_and_flags_the_account() {
+        let f = enrolled();
+        let c = dev::verify_cert(&f.ca.key.verifying_key(), &f.cert).unwrap();
+        let u = nitya_keys::create("ank", &c.device_key, &c.wrap_key, "pass").unwrap();
+        f.ca.store().put_key_set("ank", 0, &u.keys.encode_to_vec(), false, T).unwrap();
+        assert!(f.ca.revoke(c.serial, T).unwrap().1);
+        let row = f.ca.store().key_set("ank").unwrap().unwrap();
+        assert!(row.rotation_pending);
+        assert_eq!(row.revision, 2);
+        assert!(KeySet::decode(row.keys.as_slice()).unwrap().devices.is_empty());
+        // Again: nothing left to delete.
+        assert!(!f.ca.revoke(c.serial, T).unwrap().1);
     }
 
     #[test]

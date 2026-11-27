@@ -1,0 +1,102 @@
+// Keys: an account's key hierarchy (ADR-0005, ADR-0010, ADR-0013). The server stores it
+// and never holds the user key; devices read it, change it and write it back whole.
+syntax = "proto3";
+
+package nitya.v1;
+
+// An account's keys. Every secret in it is wrapped: to a device, to the recovery key,
+// under the user key (UK), or to the server's sync-delegate key.
+message KeySet {
+  // Raised by each rotation; bound into everything wrapped under UK.
+  uint32 uk_version = 1;
+  // UK wrapped to each approved device.
+  repeated DeviceWrap devices = 2;
+  // The recovery key: an age X25519 identity sealed under Argon2id(passphrase, salt),
+  // so a rotation can wrap the new UK to its public half without the passphrase.
+  bytes recovery_salt = 3;
+  bytes recovery_secret = 4;
+  string recovery_public = 5;
+  // A tag under UK over recovery_public, so the server cannot swap in its own key.
+  bytes recovery_tag = 6;
+  // UK wrapped to the recovery key.
+  bytes recovery_wrap = 7;
+  // Each data class's DEK versions, under UK; the highest is the one writes use.
+  repeated ClassKey deks = 8;
+  // The append key's versions: the public half, and the private half under UK.
+  repeated AppendKey append_keys = 9;
+  // DEKs the owner consented to delegate, wrapped to the server's delegate key.
+  repeated ClassKey delegated = 10;
+}
+
+message DeviceWrap {
+  // The device's Ed25519 key, as in its certificate.
+  bytes device_key = 1;
+  // Its X25519 wrap key (an age recipient), as approved on a device.
+  string wrap_key = 2;
+  // UK wrapped (age) to wrap_key.
+  bytes wrap = 3;
+  // A tag under UK over device_key and wrap_key: the approval, which a rotation checks.
+  bytes tag = 4;
+}
+
+message ClassKey {
+  string class = 1;
+  uint32 version = 2;
+  bytes wrap = 3;
+}
+
+message AppendKey {
+  uint32 version = 1;
+  string public = 2;
+  bytes private = 3;
+}
+
+// An item as the store keeps it.
+message SealedItem {
+  // The DEK version; or, with item_key set, the append key version.
+  uint32 version = 1;
+  // For items sealed by the server without a delegate: the item's own key, wrapped to
+  // the append key.
+  bytes item_key = 2;
+  // XChaCha20-Poly1305, the nonce first.
+  bytes ciphertext = 3;
+}
+
+service Keys {
+  // The caller's account's keys and devices; signed.
+  rpc Get(GetKeysRequest) returns (GetKeysResponse);
+  // Replaces the account's keys if they are still at base_revision; signed.
+  rpc Put(PutKeysRequest) returns (PutKeysResponse);
+}
+
+message GetKeysRequest {}
+
+message GetKeysResponse {
+  // Absent until a device has made them.
+  KeySet keys = 1;
+  uint64 revision = 2;
+  // A device with a wrap was revoked: the next device to unlock rotates.
+  bool rotation_pending = 3;
+  // The server's sync-delegate key, an age recipient.
+  string delegate_key = 4;
+  repeated Member members = 5;
+}
+
+// A device of the account, from its latest certificate.
+message Member {
+  uint64 serial = 1;
+  string kind = 2;
+  string hostname = 3;
+  bytes device_key = 4;
+  string wrap_key = 5;
+  bool revoked = 6;
+}
+
+message PutKeysRequest {
+  uint64 base_revision = 1;
+  KeySet keys = 2;
+}
+
+message PutKeysResponse {
+  uint64 revision = 1;
+}
