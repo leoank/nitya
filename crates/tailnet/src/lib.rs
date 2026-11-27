@@ -124,6 +124,9 @@ fn joined(dir: &Path) -> bool {
     dir.join("tailscaled.state").exists()
 }
 
+/// How long a dial waits for a name to resolve after a start from saved state.
+pub const RESOLVE_WAIT: std::time::Duration = std::time::Duration::from_secs(15);
+
 impl Tailnet {
     /// Joins the tailnet and waits until it is usable. The first join needs the auth key;
     /// later starts use the state in `dir`.
@@ -239,15 +242,24 @@ impl Tailnet {
     }
 
     /// A TCP connection to `host:port` on the tailnet. Right after a start from saved
-    /// state the name may not resolve yet; the caller retries as for any failed connect.
+    /// state tsnet is Running before the tailnet's peers have arrived, so a name may not
+    /// resolve yet: a failed lookup is retried for up to `RESOLVE_WAIT`.
     pub async fn dial(self: &Arc<Self>, addr: &str) -> io::Result<UnixStream> {
-        let me = self.clone();
-        let addr = addr.to_string();
-        let fd = tokio::task::spawn_blocking(move || me.sd.dial(&addr))
-            .await
-            .map_err(io::Error::other)?
-            .map_err(|e| io::Error::other(format!("{e:#}")))?;
-        stream(fd)
+        let deadline = tokio::time::Instant::now() + RESOLVE_WAIT;
+        loop {
+            let me = self.clone();
+            let a = addr.to_string();
+            match tokio::task::spawn_blocking(move || me.sd.dial(&a)).await.map_err(io::Error::other)? {
+                Ok(fd) => return stream(fd),
+                Err(e) => {
+                    let msg = format!("{e:#}");
+                    if !msg.contains("no such host") || tokio::time::Instant::now() >= deadline {
+                        return Err(io::Error::other(msg));
+                    }
+                    tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+                }
+            }
+        }
     }
 
     /// A connector for tonic's `Endpoint::connect_with_connector`: dials the endpoint's
