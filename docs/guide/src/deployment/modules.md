@@ -17,9 +17,12 @@ files there.
     # hostname = "nitya"; port = 7300;      # its name and port on the tailnet
     authKeyFile = config.age.secrets.nityaServerTsAuthKey.path;
     delegateKeyFile = config.age.secrets.nityaDelegateKey.path;
+    googleClientFile = config.age.secrets.nityaGoogleClient.path;
+    # pollSeconds = 60;                     # how often each channel syncs
   };
   age.secrets.nityaServerTsAuthKey.rekeyFile = ./secrets/tailnet-authkey.age;
   age.secrets.nityaDelegateKey.rekeyFile = ./secrets/nityaDelegateKey.age;
+  age.secrets.nityaGoogleClient.rekeyFile = ./secrets/nityaGoogleClient.age;
 }
 ```
 
@@ -42,7 +45,11 @@ files there.
   ```
 
   Without `delegateKeyFile`, the server makes the key in its state directory.
-- Both secrets reach the service as systemd credentials. The service user can't read
+- **The Google client** is the Desktop OAuth client's JSON from
+  [Provider sign-in apps](provider-apps.md). With it the server syncs Google calendars,
+  and your nodes sign Google accounts in ([Channels and sync](../using/sync.md#connecting-a-google-account)).
+  The accounts' tokens are kept in the server's store, not in agenix.
+- The secrets reach the service as systemd credentials. The service user can't read
   them where agenix keeps them, and their paths never appear on its command line.
 
 Admin commands run as the service user through sudo:

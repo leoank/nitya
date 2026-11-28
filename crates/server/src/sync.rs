@@ -8,6 +8,11 @@
 //! `no_driver`. A run holds the channel's lease in the store, so the poller and a sync-now
 //! never run one channel twice at once, and a run that died is taken over after
 //! `STALE_SECS`.
+//!
+//! A run first writes the changes devices queued (ADR-0018), oldest first, then fetches.
+//! A change the provider refuses (a conflict, something it cannot hold) stays in the
+//! outbox with the reason, and is not retried; one that fails for a passing reason stops
+//! the run and is retried with it.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -17,7 +22,7 @@ use anyhow::{Context, Result};
 use nitya_device as dev;
 use nitya_keys::{Delegate, KeySet};
 use nitya_proto::v1::SealedItem;
-use nitya_store::{Channel, Item, Outcome, Run};
+use nitya_store::{Channel, Item, Outcome, Pending, Run};
 use prost::Message;
 
 use crate::ca::{Ca, Record};
@@ -37,9 +42,8 @@ const MAX_BACKOFF_SECS: i64 = 3600;
 /// How many pages one run fetches at most; the rest waits for the next run.
 const MAX_PAGES: usize = 1000;
 
-/// One change at the provider. Drivers make these; the first comes with phase 2 item 2.
+/// One change at the provider.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(not(test), allow(dead_code))]
 pub enum Change {
     /// The item as the provider sent it (raw iCalendar, raw MIME), with its etag.
     Upsert { id: String, etag: Option<String>, data: Vec<u8> },
@@ -59,7 +63,6 @@ pub struct Page {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(not(test), allow(dead_code))]
 pub enum DriverError {
     /// The provider no longer knows the cursor (410, `syncStateNotFound`): start over.
     CursorExpired,
@@ -69,10 +72,36 @@ pub enum DriverError {
     Transient(String),
 }
 
-/// A provider's side of a channel: changes since `cursor` (from the start when `None`).
+/// A device's change to one item, for the provider: `data` is the item as it should be
+/// (`None`: delete it); `provider_id` is `None` for a new item; `base_etag` is the version
+/// the device changed, so the provider refuses the write if it changed meanwhile.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Write {
+    pub provider_id: Option<String>,
+    pub base_etag: Option<String>,
+    pub data: Option<Vec<u8>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PushError {
+    /// The item changed at the provider since the device read it.
+    Conflict(String),
+    /// The provider cannot hold it, or will not take it.
+    Refused(String),
+    Auth(String),
+    Transient(String),
+}
+
+/// A provider's side of a channel.
 #[tonic::async_trait]
 pub trait Driver: Send + Sync {
+    /// Changes since `cursor` (from the start when `None`).
     async fn fetch(&self, credential: &[u8], cursor: Option<&[u8]>) -> Result<Page, DriverError>;
+    /// Writes one change; the item as the provider now holds it (an upsert with its id and
+    /// etag), or the delete.
+    async fn push(&self, credential: &[u8], w: &Write) -> Result<Change, PushError>;
+    /// Why the provider could not hold `data`, before it is queued.
+    fn check(&self, data: &[u8]) -> Result<(), String>;
 }
 
 /// What one run did.
@@ -83,6 +112,10 @@ pub struct Report {
     pub full: bool,
     pub upserts: u32,
     pub deletes: u32,
+    /// Queued changes the provider took (the outbox id and the item's provider id), and
+    /// how many it refused.
+    pub written: Vec<(i64, String)>,
+    pub refused: u32,
     pub error: Option<String>,
 }
 
@@ -99,6 +132,11 @@ fn item_ref(channel: i64, provider_id: &str) -> String {
 
 fn credential_ref(channel: i64) -> String {
     format!("channel:{channel}:credential")
+}
+
+/// What a device seals a queued change under.
+pub fn change_ref(channel: i64) -> String {
+    format!("channel:{channel}:change")
 }
 
 impl Engine {
@@ -137,7 +175,7 @@ impl Engine {
         }
         let (report, outcome) = self.run(&c, now).await;
         self.ca.store().release_channel(id, &outcome, dev::now())?;
-        let changed = report.upserts + report.deletes > 0;
+        let changed = report.upserts + report.deletes + report.written.len() as u32 + report.refused > 0;
         if changed || report.error.is_some() {
             self.ca.store().record_run(&Run {
                 channel_id: id,
@@ -155,7 +193,13 @@ impl Engine {
         if changed || (report.error.is_some() && report.stage != CONSENT) || entered_wait {
             let detail = match &report.error {
                 Some(e) => format!("{}: {e}", report.stage),
-                None => format!("{} sync, {} upserted, {} deleted", if report.full { "full" } else { "incremental" }, report.upserts, report.deletes),
+                None => {
+                    let mut d = format!("{} sync, {} upserted, {} deleted", if report.full { "full" } else { "incremental" }, report.upserts, report.deletes);
+                    if !report.written.is_empty() || report.refused > 0 {
+                        d += &format!("; {} written, {} refused", report.written.len(), report.refused);
+                    }
+                    d
+                }
             };
             self.ca.record(
                 Record {
@@ -209,6 +253,40 @@ impl Engine {
             }
         };
         let mut credential = credential.to_vec();
+        // Devices' changes first, so the fetch brings back what the provider made of them.
+        let queue = match self.ca.store().pending(c.id) {
+            Ok(q) => q,
+            Err(e) => {
+                let o = stop(&mut r, FAILED, format!("reading the outbox: {e:#}"), now + self.backoff(c.failures), c.failures + 1);
+                return (r, o);
+            }
+        };
+        for p in queue.iter().filter(|p| p.error.is_none()) {
+            match self.push_one(c, &keys, driver.as_ref(), &credential, p, now).await {
+                Ok(Some(id)) => r.written.push((p.id, id)),
+                Ok(None) => r.refused += 1,
+                Err(PushError::Auth(m)) => {
+                    let o = stop(&mut r, AUTH, m, now + MAX_BACKOFF_SECS, 0);
+                    return (r, o);
+                }
+                Err(e) => {
+                    let m = match e {
+                        PushError::Transient(m) | PushError::Conflict(m) | PushError::Refused(m) | PushError::Auth(m) => m,
+                    };
+                    let o = stop(&mut r, FAILED, format!("writing a change: {m}"), now + self.backoff(c.failures), c.failures + 1);
+                    return (r, o);
+                }
+            }
+        }
+        // What the provider sends again unchanged (a series re-sent for one changed
+        // instance, EXP-20261127-mqzh92) is not sealed and stored again.
+        let known: HashMap<String, Option<String>> = match self.ca.store().items(c.id) {
+            Ok(all) => all.into_iter().filter(|i| !i.deleted).map(|i| (i.provider_id, i.etag)).collect(),
+            Err(e) => {
+                let o = stop(&mut r, FAILED, format!("reading items: {e:#}"), now + self.backoff(c.failures), c.failures + 1);
+                return (r, o);
+            }
+        };
         r.full = c.cursor.is_none() || c.stage == FULL || c.stage == NEW;
         let mut cursor = if r.full { None } else { c.cursor.clone() };
         let mut restarted = false;
@@ -250,6 +328,10 @@ impl Engine {
             for ch in &page.changes {
                 match ch {
                     Change::Upsert { id, etag, data } => {
+                        if etag.is_some() && known.get(id) == Some(etag) {
+                            seen.insert(id.clone());
+                            continue;
+                        }
                         let s = match self.delegate.seal_item(&c.account, &keys, &c.class, &item_ref(c.id, id), data) {
                             Ok(s) => s,
                             Err(e) => {
@@ -304,10 +386,44 @@ impl Engine {
     }
 }
 
+impl Engine {
+    /// Writes one queued change: the item's provider id when the provider took it (the
+    /// item as it now holds it is stored and the change leaves the outbox), `None` when it
+    /// refused it (the change stays, with why); an error stops the run.
+    async fn push_one(&self, c: &Channel, keys: &KeySet, driver: &dyn Driver, credential: &[u8], p: &Pending, now: i64) -> Result<Option<String>, PushError> {
+        let fail = |e: anyhow::Error| PushError::Transient(format!("{e:#}"));
+        let data = if p.sealed.is_empty() {
+            None
+        } else {
+            let s = SealedItem::decode(p.sealed.as_slice()).map_err(|e| fail(e.into()))?;
+            Some(self.delegate.open_item(&c.account, keys, &c.class, &change_ref(c.id), &s).map_err(fail)?.to_vec())
+        };
+        let w = Write { provider_id: p.provider_id.clone(), base_etag: p.base_etag.clone(), data };
+        let item = match driver.push(credential, &w).await {
+            Ok(Change::Upsert { id, etag, data }) => {
+                let s = self.delegate.seal_item(&c.account, keys, &c.class, &item_ref(c.id, &id), &data).map_err(fail)?;
+                Item { id: 0, channel_id: c.id, provider_id: id, etag, key_version: s.version, sealed: s.encode_to_vec(), updated: now, deleted: false }
+            }
+            Ok(Change::Delete { id }) => Item { id: 0, channel_id: c.id, provider_id: id, etag: None, key_version: 0, sealed: vec![], updated: now, deleted: true },
+            Err(PushError::Conflict(m) | PushError::Refused(m)) => {
+                self.ca.store().change_refused(p.id, &m).map_err(fail)?;
+                return Ok(None);
+            }
+            Err(e) => return Err(e),
+        };
+        self.ca.store().change_written(p.id, &item, now).map_err(fail)?;
+        Ok(Some(item.provider_id))
+    }
+
+    /// The driver of `provider`, if the server has one.
+    pub fn driver(&self, provider: &str) -> Option<&Arc<dyn Driver>> {
+        self.drivers.get(provider)
+    }
+}
+
 /// Adds a channel for `account` with its driver's credential, sealed under the account's
-/// `tokens` key; needs the owner's consent to `tokens`. Signing an account in calls it,
-/// from phase 2 item 2.
-#[cfg_attr(not(test), allow(dead_code))]
+/// `tokens` key; needs the owner's consent to `tokens`. Signing an account in again
+/// replaces the credential of a channel it already has and lets it run again.
 #[allow(clippy::too_many_arguments)]
 pub fn add_channel(ca: &Ca, delegate: &Delegate, account: &str, provider: &str, class: &str, name: &str, credential: &[u8], now: i64) -> Result<i64> {
     let row = ca.store().key_set(account)?.context("the account has no keys yet")?;
@@ -316,6 +432,11 @@ pub fn add_channel(ca: &Ca, delegate: &Delegate, account: &str, provider: &str, 
     let id = ca.store().channel(account, provider, class, name, now)?;
     let sealed = delegate.seal_item(account, &keys, "tokens", &credential_ref(id), credential)?;
     ca.store().set_credential(id, &sealed.encode_to_vec(), now)?;
+    let ch = ca.store().channel_by_id(id)?.context("the channel just made")?;
+    if ch.stage == AUTH {
+        let stage = if ch.cursor.is_some() { INCREMENTAL } else { NEW };
+        ca.store().release_channel(id, &Outcome { stage: stage.into(), failures: 0, next_attempt: 0, last_sync: None, last_error: None }, now)?;
+    }
     Ok(id)
 }
 
@@ -334,6 +455,8 @@ mod tests {
     struct Fake {
         script: Mutex<Vec<Result<Page, DriverError>>>,
         asked: Mutex<Vec<Asked>>,
+        pushes: Mutex<Vec<Result<Change, PushError>>>,
+        written: Mutex<Vec<Write>>,
     }
 
     #[tonic::async_trait]
@@ -342,6 +465,15 @@ mod tests {
             self.asked.lock().unwrap().push((credential.to_vec(), cursor.map(<[u8]>::to_vec)));
             let mut s = self.script.lock().unwrap();
             if s.is_empty() { Ok(Page::default()) } else { s.remove(0) }
+        }
+
+        async fn push(&self, _: &[u8], w: &Write) -> Result<Change, PushError> {
+            self.written.lock().unwrap().push(w.clone());
+            self.pushes.lock().unwrap().remove(0)
+        }
+
+        fn check(&self, _: &[u8]) -> Result<(), String> {
+            Ok(())
         }
     }
 
@@ -437,8 +569,54 @@ mod tests {
         f.engine.sync_channel(ch, T).await.unwrap();
         *f.fake.script.lock().unwrap() = vec![Err(DriverError::CursorExpired), page(vec![up("a", "A")], "c9", false)];
         let r = f.engine.sync_channel(ch, T + 60).await.unwrap();
-        assert_eq!((r.full, r.upserts, r.deletes, r.error), (true, 1, 1, None));
+        // a is listed again unchanged (its etag): kept as it is, not stored again
+        assert_eq!((r.full, r.upserts, r.deletes, r.error), (true, 0, 1, None));
         assert_eq!(live(&f, ch), vec![("a".into(), false), ("b".into(), true)]);
+    }
+
+    fn queue(f: &Fixture, ch: i64, id: Option<&str>, data: &[u8]) -> i64 {
+        let sealed = if data.is_empty() { vec![] } else { f.uk.seal_item("calendar", &change_ref(ch), data).unwrap().encode_to_vec() };
+        let p = Pending { id: 0, channel_id: ch, provider_id: id.map(str::to_string), base_etag: id.map(|_| "e-A".into()), sealed, actor: "node:x".into(), created: T, error: None };
+        f.ca.store().queue_change(&p).unwrap()
+    }
+
+    #[tokio::test]
+    async fn queued_changes_are_written_first_and_a_refused_one_stays_with_why() {
+        let f = fixture(&["tokens", "calendar"]);
+        let ch = channel(&f);
+        *f.fake.script.lock().unwrap() = vec![page(vec![up("a", "A"), up("b", "B")], "c1", false)];
+        f.engine.sync_channel(ch, T).await.unwrap();
+        queue(&f, ch, None, b"NEW");
+        queue(&f, ch, Some("a"), b"A-edited");
+        queue(&f, ch, Some("b"), b"");
+        *f.fake.pushes.lock().unwrap() = vec![Ok(up("n", "NEW")), Err(PushError::Conflict("changed at the provider".into())), Ok(Change::Delete { id: "b".into() })];
+        let r = f.engine.sync_channel(ch, T + 60).await.unwrap();
+        assert_eq!((r.written.iter().map(|w| w.1.as_str()).collect::<Vec<_>>(), r.refused, r.error), (vec!["n", "b"], 1, None));
+        // the server opened what the device sealed, and wrote it in order
+        let w = f.fake.written.lock().unwrap().clone();
+        assert_eq!(w.iter().map(|w| w.data.clone()).collect::<Vec<_>>(), vec![Some(b"NEW".to_vec()), Some(b"A-edited".to_vec()), None]);
+        assert_eq!(w[1].base_etag.as_deref(), Some("e-A"));
+        assert_eq!(live(&f, ch), vec![("a".into(), false), ("b".into(), true), ("n".into(), false)]);
+        let left = f.ca.store().pending(ch).unwrap();
+        assert_eq!((left.len(), left[0].error.as_deref()), (1, Some("changed at the provider")));
+        // a refused change is not tried again
+        f.engine.sync_channel(ch, T + 120).await.unwrap();
+        assert_eq!(f.fake.written.lock().unwrap().len(), 3);
+        let log = f.ca.store().audit_since("ank", 0).unwrap();
+        assert!(log.iter().any(|e| String::from_utf8_lossy(&e.detail.clone().unwrap_or_default()).contains("; 2 written, 1 refused")));
+    }
+
+    #[tokio::test]
+    async fn a_change_that_fails_for_now_stops_the_run_and_waits_for_the_next() {
+        let f = fixture(&["tokens", "calendar"]);
+        let ch = channel(&f);
+        queue(&f, ch, None, b"NEW");
+        *f.fake.pushes.lock().unwrap() = vec![Err(PushError::Transient("503".into()))];
+        let r = f.engine.sync_channel(ch, T).await.unwrap();
+        assert_eq!(r.stage, FAILED);
+        assert!(f.fake.asked.lock().unwrap().is_empty(), "no fetch after a failed write");
+        let left = f.ca.store().pending(ch).unwrap();
+        assert_eq!((left.len(), left[0].error.clone()), (1, None));
     }
 
     #[tokio::test]

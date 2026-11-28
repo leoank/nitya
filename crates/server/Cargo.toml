@@ -11,15 +11,20 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1.0.104"
 cedar-policy = "4.15.0"
+chrono = "0.4.45"
+chrono-tz = "0.10.4"
 ed25519-dalek = "2"
 nitya-audit = { path = "../audit" }
 nitya-device = { path = "../device" }
+nitya-ical = { path = "../ical" }
 nitya-keys = { path = "../keys" }
 nitya-proto = { path = "../proto" }
 nitya-store = { path = "../store" }
 nitya-tailnet = { path = "../tailnet" }
 prost = "0.14.4"
 rand = "0.8"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+serde_json = "1.0.154"
 sha2 = "0.10"
 tokio = { version = "1.53.3", features = ["rt-multi-thread", "macros", "sync", "time"] }
 tonic = "0.14.6"

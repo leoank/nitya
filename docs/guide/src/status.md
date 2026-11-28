@@ -2,8 +2,8 @@
 
 nitya is in **phase 2: calendar sync and tasks**. Phase 1 built the core: the server
 runs on its own machine and a node on the owner's, on a tailnet, with the security
-everything else rests on. The sync engine is in place; no calendar can be connected yet,
-and there is no mail and there are no agents.
+everything else rests on. Google calendars sync both ways; Microsoft and CalDAV
+calendars can't be connected yet, and there is no mail and there are no agents.
 Phase 0, the design and its spikes, is done except for one experiment that takes a month.
 
 What runs today ([Using nitya](using/running.md)):
@@ -20,8 +20,12 @@ What runs today ([Using nitya](using/running.md)):
 - **The store**: one SQLite database holding accounts, certificates, key sets, the audit
   log, and the channels and sealed items that sync will fill.
 - **The sync engine**: channels synced every minute while you consent, or at once with
-  `nitya-node sync now` ([Channels and sync](using/sync.md)); the providers' drivers come
-  next.
+  `nitya-node sync now` ([Channels and sync](using/sync.md)).
+- **Google calendars, both ways**: an account signed in from a node with
+  `nitya-node channels add google`, each chosen calendar a channel; events read, added,
+  edited and deleted with `nitya-node events`, written back to Google at once, with what
+  Google can't hold and changes that would overwrite one made at Google refused
+  ([Channels and sync](using/sync.md#reading-and-changing-events)).
 - **Policies**: Cedar decides every request; your devices act as you, agents only by
   grant ([Who may do what](using/access.md)).
 - **The audit log**: every decision signed and chained, and checked by your devices
@@ -38,5 +42,5 @@ without reading what you did not delegate, provided revocation also rotates the 
 ([[EXP-20261123-bhfzeh]]). Whether the provider tokens last a month on a headless server
 is being measured ([[EXP-20261123-bhfz49]]).
 
-Next: the Google Calendar driver, then Microsoft Graph and CalDAV, two-way. The phases are on the
+Next: the Microsoft Graph and CalDAV drivers, two-way. The phases are on the
 [project page](https://github.com/leoank/nitya/blob/main/notes/README.md).

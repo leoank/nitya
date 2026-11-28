@@ -18,7 +18,15 @@
 //!                                 is new, hand back the new head
 //!
 //!   channels                      the account's provider channels and where each stands
+//!   channels add google [--no-browser]
+//!                                 sign a Google account in here, in the browser; choose
+//!                                 which of its calendars become channels
 //!   sync now [ID]                 sync channel ID (or every channel) at once
+//!   events CH                     channel CH's events, opened with the account's keys
+//!   events show CH ID | add CH FILE | edit CH ID [FILE] | delete CH ID
+//!                                 one event as iCalendar; a new one from FILE (- for
+//!                                 stdin); a changed one from FILE or $EDITOR; written to
+//!                                 the provider at once, refused if it cannot hold it
 //!
 //! DIR holds the tailnet identity (tailnet/), the device key (device.key), its wrap key
 //! (wrap.key), its certificate (device.cert), the server's CA key (ca.pub), the server's
@@ -39,12 +47,15 @@ use nitya_proto::v1::audit_client::AuditClient;
 use nitya_proto::v1::channels_client::ChannelsClient;
 use nitya_proto::v1::devices_client::DevicesClient;
 use nitya_proto::v1::keys_client::KeysClient;
-use nitya_proto::v1::{Cert, CertBody, Checkpoint, EnrollRequest, GetKeysRequest, GetKeysResponse, PutKeysRequest, ListChannelsRequest, RenewRequest, SinceRequest, SyncNowRequest, WhoAmIRequest};
+use nitya_proto::v1::{
+    AddRequest, Cert, CertBody, Checkpoint, EnrollRequest, ExchangeRequest, GetKeysRequest, GetKeysResponse, ItemsRequest, ListChannelsRequest, PutKeysRequest, RenewRequest,
+    SignInRequest, SinceRequest, SyncNowRequest, WhoAmIRequest, WriteRequest,
+};
 use nitya_tailnet::{AuthKey, Options, Tailnet};
 use prost::Message;
 use tonic::transport::Channel;
 
-const USAGE: &str = "usage: nitya-node --state-dir DIR --hostname NAME [--authkey-file F] [--server HOST:PORT] [--ephemeral] enroll CODE | whoami | audit verify [--all] | channels | sync now [ID] | keys (fingerprint | init | status | approve SERIAL FPR | recover | consent CLASS | withdraw CLASS)";
+const USAGE: &str = "usage: nitya-node --state-dir DIR --hostname NAME [--authkey-file F] [--server HOST:PORT] [--ephemeral] enroll CODE | whoami | audit verify [--all] | channels [add google [--no-browser]] | sync now [ID] | events CH [show CH ID | add CH FILE | edit CH ID [FILE] | delete CH ID] | keys (fingerprint | init | status | approve SERIAL FPR | recover | consent CLASS | withdraw CLASS)";
 
 const HELP: &str = "\
 nitya-node: nitya's node on this machine, on its own tailnet identity, with a device key
@@ -61,8 +72,22 @@ Commands:
                                (--all: from the first entry), print the new entries, and
                                hand the server the head this device verified
   channels                     the account's provider channels: stage, last sync, last error
+  channels add google [--no-browser]
+                               sign a Google account in, in this machine's browser (or
+                               print the URL), and choose which of its calendars to sync,
+                               each a channel; needs `keys consent tokens`
   sync now [ID]                sync channel ID, or every channel of the account, now rather
                                than at the next poll; prints what each run did
+  events CH                    channel CH's events: id, start, summary; opened here with
+                               the account's keys
+  events show CH ID            one event as iCalendar (ID: its id or a unique prefix)
+  events add CH FILE           a new event from an iCalendar FILE (- for stdin)
+  events edit CH ID [FILE]     change an event: from FILE, or in $EDITOR
+  events delete CH ID          delete an event
+                               Changes are written to the provider at once; one it cannot
+                               hold (Google: floating time, RANGE=THISANDFUTURE) is refused
+                               before it is sent, and one changed at the provider since
+                               this device read it is refused, not overwritten
   keys fingerprint             this device's wrap key fingerprint, to compare when another
                                device approves it; needs no server
   keys init                    make the account's keys on its first device; reads the
@@ -93,8 +118,9 @@ enum Command {
     Enroll(String),
     WhoAmI,
     AuditVerify { all: bool },
-    Channels,
+    Channels(Vec<String>),
     SyncNow(i64),
+    Events(Vec<String>),
     Keys(Vec<String>),
 }
 
@@ -128,7 +154,8 @@ fn args() -> Result<Option<Args>> {
             "enroll" if cmd.is_none() => cmd = Some(Command::Enroll(val()?)),
             "whoami" if cmd.is_none() => cmd = Some(Command::WhoAmI),
             "keys" if cmd.is_none() => cmd = Some(Command::Keys(a.by_ref().collect())),
-            "channels" if cmd.is_none() => cmd = Some(Command::Channels),
+            "channels" if cmd.is_none() => cmd = Some(Command::Channels(a.by_ref().collect())),
+            "events" if cmd.is_none() => cmd = Some(Command::Events(a.by_ref().collect())),
             "sync" if cmd.is_none() => {
                 if val()? != "now" {
                     bail!("{USAGE}");
@@ -388,6 +415,293 @@ async fn keys(args: &[String], call: &mut KeysCall, body: &CertBody, wrap: &Iden
     Ok(())
 }
 
+/// A device's signature on a call.
+struct Call {
+    device: SigningKey,
+    cert: Cert,
+}
+
+impl Call {
+    fn req<T>(&self, msg: T, method: &str) -> tonic::Request<T>
+    where
+        T: Message,
+    {
+        let mut r = tonic::Request::new(msg);
+        dev::sign_request(&mut r, &self.device, &self.cert, method, dev::now());
+        r
+    }
+}
+
+fn b64(b: &[u8]) -> String {
+    use base64::Engine;
+    base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(b)
+}
+
+fn random(n: usize) -> Vec<u8> {
+    use rand::RngCore;
+    let mut b = vec![0u8; n];
+    rand::thread_rng().fill_bytes(&mut b);
+    b
+}
+
+/// `%XX` and `+` decoded, as a query string's values come.
+fn query_value(v: &str) -> String {
+    let b = v.as_bytes();
+    let mut out = Vec::with_capacity(b.len());
+    let mut i = 0;
+    while i < b.len() {
+        match b[i] {
+            b'+' => out.push(b' '),
+            b'%' if i + 2 < b.len() => {
+                match std::str::from_utf8(&b[i + 1..i + 3]).ok().and_then(|h| u8::from_str_radix(h, 16).ok()).ok_or(()) {
+                    Ok(x) => {
+                        out.push(x);
+                        i += 2;
+                    }
+                    Err(()) => out.push(b'%'),
+                }
+            }
+            c => out.push(c),
+        }
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
+/// Waits on `listener` for the sign-in's redirect and answers the browser; the query's
+/// pairs. Requests without a code or an error (a favicon) are answered and skipped.
+fn redirect(listener: std::net::TcpListener) -> Result<std::collections::HashMap<String, String>> {
+    use std::io::{BufRead, BufReader, Write as _};
+    loop {
+        let (mut stream, _) = listener.accept()?;
+        let mut line = String::new();
+        BufReader::new(&stream).read_line(&mut line)?;
+        let target = line.split_whitespace().nth(1).unwrap_or("/");
+        let q: std::collections::HashMap<String, String> = target
+            .split_once('?')
+            .map(|(_, q)| q.split('&').filter_map(|kv| kv.split_once('=')).map(|(k, v)| (k.to_string(), query_value(v))).collect())
+            .unwrap_or_default();
+        let done = q.contains_key("code") || q.contains_key("error");
+        let page = if done { "nitya has the answer; you can close this tab." } else { "" };
+        let _ = write!(stream, "HTTP/1.1 200 OK\r\ncontent-type: text/plain; charset=utf-8\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{page}", page.len());
+        if done {
+            return Ok(q);
+        }
+    }
+}
+
+/// Signs a Google account in through this machine's browser (RFC 8252: a loopback
+/// redirect and PKCE): the server holds the OAuth client, trades the code for the tokens
+/// and keeps them; nothing secret passes through here but the one-time code.
+async fn add_google(mut client: ChannelsClient<Channel>, device: &SigningKey, cert: &Cert, no_browser: bool) -> Result<()> {
+    use sha2::Digest;
+    let call = Call { device: device.clone(), cert: cert.clone() };
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").context("listening on loopback for the sign-in's redirect")?;
+    let redirect_uri = format!("http://127.0.0.1:{}/", listener.local_addr()?.port());
+    let verifier = b64(&random(32));
+    let challenge = b64(&sha2::Sha256::digest(verifier.as_bytes()));
+    let state = b64(&random(16));
+    let req = SignInRequest { provider: "google".into(), redirect_uri: redirect_uri.clone(), code_challenge: challenge, state: state.clone() };
+    let url = client.sign_in(call.req(req, "nitya.v1.Channels/SignIn")).await.context("starting the sign-in")?.into_inner().url;
+    eprintln!("nitya-node: sign in to Google in the browser:\n\n  {url}\n");
+    if !no_browser {
+        let opener = if cfg!(target_os = "macos") { "open" } else { "xdg-open" };
+        if std::process::Command::new(opener).arg(&url).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn().is_err() {
+            eprintln!("nitya-node: could not start {opener}; open the URL yourself");
+        }
+    }
+    let q = tokio::time::timeout(std::time::Duration::from_secs(600), tokio::task::spawn_blocking(move || redirect(listener)))
+        .await
+        .context("no sign-in within 10 minutes")???;
+    if let Some(e) = q.get("error") {
+        bail!("Google did not sign the account in: {e}");
+    }
+    if q.get("state") != Some(&state) {
+        bail!("the redirect's state is not this sign-in's: not using it");
+    }
+    let code = q.get("code").cloned().unwrap_or_default();
+    let req = ExchangeRequest { provider: "google".into(), code, code_verifier: verifier, redirect_uri };
+    let x = client.exchange(call.req(req, "nitya.v1.Channels/Exchange")).await.context("handing the server the sign-in")?.into_inner();
+    if x.calendars.is_empty() {
+        bail!("the account has no calendars");
+    }
+    for (i, c) in x.calendars.iter().enumerate() {
+        let had = if c.channel_id == 0 { String::new() } else { format!("  (channel {})", c.channel_id) };
+        println!("{:>3}  {}{}\t{}\t{}{had}", i + 1, c.summary, if c.primary { " (primary)" } else { "" }, c.role, c.id);
+    }
+    eprint!("calendars to sync, by number (1,3) or all: ");
+    let mut line = String::new();
+    std::io::stdin().read_line(&mut line)?;
+    let line = line.trim();
+    let chosen: Vec<String> = if line == "all" {
+        x.calendars.iter().map(|c| c.id.clone()).collect()
+    } else {
+        line.split([',', ' ']).filter(|s| !s.is_empty()).map(|n| {
+            let i: usize = n.parse().with_context(|| format!("{n} is not a number from the list"))?;
+            x.calendars.get(i.wrapping_sub(1)).map(|c| c.id.clone()).with_context(|| format!("no calendar {i}"))
+        }).collect::<Result<_>>()?
+    };
+    if chosen.is_empty() {
+        bail!("no calendar chosen; nothing added");
+    }
+    let req = AddRequest { handle: x.handle, calendar_ids: chosen };
+    let r = client.add(call.req(req, "nitya.v1.Channels/Add")).await.context("adding the calendars")?.into_inner();
+    for c in r.channels {
+        println!("channel {}: {} {} {} ({})", c.id, c.provider, c.class, c.name, c.stage);
+    }
+    println!("they sync within a minute while the server holds consent to tokens and calendar (`keys status`)");
+    Ok(())
+}
+
+/// What a device seals a change under; the server opens it under the same name.
+fn change_ref(channel: i64) -> String {
+    format!("channel:{channel}:change")
+}
+
+/// An event's start as a person reads it, and a key that sorts by it.
+fn start_of(ev: &nitya_ical::Comp) -> (String, String) {
+    let Some(p) = ev.get("DTSTART") else { return (String::new(), "-".into()) };
+    let v = p.value.trim();
+    let shown = if v.len() >= 15 {
+        let zone = if v.ends_with('Z') { "Z".to_string() } else { p.param("TZID").map(|z| format!(" {z}")).unwrap_or_default() };
+        format!("{}-{}-{} {}:{}{zone}", &v[0..4], &v[4..6], &v[6..8], &v[9..11], &v[11..13])
+    } else if v.len() == 8 {
+        format!("{}-{}-{}", &v[0..4], &v[4..6], &v[6..8])
+    } else {
+        v.to_string()
+    };
+    (v.to_string(), shown)
+}
+
+/// The text of `path`, or stdin for `-`.
+fn read_input(path: &str) -> Result<Vec<u8>> {
+    use std::io::Read;
+    if path == "-" {
+        let mut b = Vec::new();
+        std::io::stdin().read_to_end(&mut b)?;
+        return Ok(b);
+    }
+    std::fs::read(path).with_context(|| format!("reading {path}"))
+}
+
+/// `text` changed in $EDITOR (vi without one), in a private temporary directory that is
+/// removed after.
+fn edit_text(text: &[u8]) -> Result<Vec<u8>> {
+    let dir = std::env::temp_dir().join(format!("nitya-edit-{}", b64(&random(9))));
+    std::fs::create_dir(&dir)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700))?;
+    }
+    let f = dir.join("event.ics");
+    let out = (|| {
+        std::fs::write(&f, text)?;
+        let editor = std::env::var("VISUAL").or_else(|_| std::env::var("EDITOR")).unwrap_or_else(|_| "vi".into());
+        let status = std::process::Command::new("sh").arg("-c").arg(format!("{editor} \"$1\"")).arg("sh").arg(&f).status().context("starting the editor")?;
+        if !status.success() {
+            bail!("the editor failed; nothing changed");
+        }
+        Ok(std::fs::read(&f)?)
+    })();
+    let _ = std::fs::remove_dir_all(&dir);
+    out
+}
+
+async fn events(args: &[String], call: &Call, channel: Channel, body: &CertBody, wrap: &Identity) -> Result<()> {
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
+    let (op, ch, rest) = match args.as_slice() {
+        [ch] => ("list", *ch, &args[1..]),
+        [op, ch, rest @ ..] => (*op, *ch, rest),
+        _ => bail!("{USAGE}"),
+    };
+    let ch: i64 = ch.parse().context("a channel is a number (see `channels`)")?;
+    let mut client = ChannelsClient::new(channel.clone()).max_decoding_message_size(256 << 20).max_encoding_message_size(64 << 20);
+    let r = client.items(call.req(ItemsRequest { channel_id: ch }, "nitya.v1.Channels/Items")).await.context("reading the channel's items")?.into_inner();
+    let keys = KeysClient::new(channel).get(call.req(GetKeysRequest {}, "nitya.v1.Keys/Get")).await.context("reading the account's keys")?.into_inner();
+    let u = nitya_keys::unlock(&body.account, keys.keys.context("the account has no keys yet")?, &body.device_key, wrap)?;
+    let open = |pid: &str| -> Result<(Vec<u8>, String)> {
+        let it = r.items.iter().find(|i| i.provider_id == pid).with_context(|| format!("no item {pid}"))?;
+        let s = it.sealed.as_ref().context("an item without its sealed text")?;
+        Ok((u.open_item(&r.class, &format!("channel:{ch}:{pid}"), s)?.to_vec(), it.etag.clone()))
+    };
+    let resolve = |prefix: &str| -> Result<String> {
+        let m: Vec<&str> = r.items.iter().map(|i| i.provider_id.as_str()).filter(|p| p.starts_with(prefix)).collect();
+        match m.as_slice() {
+            [one] => Ok(one.to_string()),
+            [] => bail!("no event {prefix} in channel {ch}"),
+            _ => bail!("{prefix} names {} events; give more of the id", m.len()),
+        }
+    };
+    let write = |provider_id: String, base_etag: String, data: Option<Vec<u8>>| async {
+        let sealed = data.map(|d| u.seal_item(&r.class, &change_ref(ch), &d)).transpose()?;
+        let req = WriteRequest { channel_id: ch, provider_id, base_etag, sealed };
+        let w = client.clone().write(call.req(req, "nitya.v1.Channels/Write")).await.context("writing")?.into_inner();
+        match w.state.as_str() {
+            "written" => println!("written: {}", w.provider_id),
+            "queued" => println!("queued; the next sync writes it{}", if w.error.is_empty() { String::new() } else { format!(" ({})", w.error) }),
+            _ => bail!("refused: {}", w.error),
+        }
+        anyhow::Ok(())
+    };
+    match (op, rest) {
+        ("list", []) => {
+            let mut rows = Vec::new();
+            for it in &r.items {
+                let (text, _) = open(&it.provider_id)?;
+                let root = nitya_ical::parse(&String::from_utf8_lossy(&text));
+                for ev in root.find("VEVENT") {
+                    let (key, shown) = start_of(ev);
+                    let mut what = ev.text("SUMMARY").unwrap_or_default().replace('\n', " ");
+                    if ev.text("STATUS").as_deref() == Some("CANCELLED") {
+                        what = format!("(cancelled) {what}");
+                    }
+                    if ev.get("RRULE").is_some() {
+                        what += "  (series)";
+                    } else if ev.get("RECURRENCE-ID").is_some() {
+                        what += "  (one occurrence)";
+                    }
+                    rows.push((key, it.provider_id.clone(), shown, what));
+                }
+            }
+            rows.sort();
+            for (_, id, start, what) in rows {
+                println!("{id}\t{start}\t{what}");
+            }
+            for p in &r.pending {
+                let what = if p.delete { "delete" } else if p.provider_id.is_empty() { "new" } else { "edit" };
+                let state = if p.error.is_empty() { "waiting".to_string() } else { format!("refused: {}", p.error) };
+                println!("change {}\t{what} {}\t{state}", p.id, p.provider_id);
+            }
+        }
+        ("show", [id]) => {
+            let (text, _) = open(&resolve(id)?)?;
+            print!("{}", String::from_utf8_lossy(&text));
+        }
+        ("add", [file]) => write(String::new(), String::new(), Some(read_input(file)?)).await?,
+        ("edit", [id, file @ ..]) if file.len() <= 1 => {
+            let id = resolve(id)?;
+            let (text, etag) = open(&id)?;
+            let new = match file {
+                [f] => read_input(f)?,
+                _ => edit_text(&text)?,
+            };
+            if new == text {
+                println!("no change");
+                return Ok(());
+            }
+            write(id, etag, Some(new)).await?;
+        }
+        ("delete", [id]) => {
+            let id = resolve(id)?;
+            let (_, etag) = open(&id)?;
+            write(id, etag, None).await?;
+        }
+        _ => bail!("{USAGE}"),
+    }
+    Ok(())
+}
+
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
     let Some(a) = args()? else {
@@ -438,7 +752,22 @@ async fn main() -> Result<()> {
             let w = client.who_am_i(req).await.context("asking the server who this node is")?.into_inner();
             println!("{} of {}: {} on node {}, serial {}, until {}", w.kind, w.account, w.hostname, w.node_id, w.serial, w.not_after);
         }
-        Command::Channels => {
+        Command::Channels(args) if !args.is_empty() => {
+            let (cert, _) = current_cert(&mut client, &a.dir, &device).await?;
+            let args: Vec<&str> = args.iter().map(String::as_str).collect();
+            let no_browser = match args.as_slice() {
+                ["add", "google"] => false,
+                ["add", "google", "--no-browser"] => true,
+                _ => bail!("{USAGE}"),
+            };
+            add_google(ChannelsClient::new(channel), &device, &cert, no_browser).await?;
+        }
+        Command::Events(args) => {
+            let (cert, body) = current_cert(&mut client, &a.dir, &device).await?;
+            let call = Call { device, cert };
+            events(&args, &call, channel, &body, &wrap).await?;
+        }
+        Command::Channels(_) => {
             let (cert, _) = current_cert(&mut client, &a.dir, &device).await?;
             let mut req = tonic::Request::new(ListChannelsRequest {});
             dev::sign_request(&mut req, &device, &cert, "nitya.v1.Channels/List", dev::now());
@@ -462,7 +791,11 @@ async fn main() -> Result<()> {
             }
             for s in r.reports {
                 let what = if s.error.is_empty() {
-                    format!("{} sync: {} upserted, {} deleted", if s.full { "full" } else { "incremental" }, s.upserts, s.deletes)
+                    let mut w = format!("{} sync: {} upserted, {} deleted", if s.full { "full" } else { "incremental" }, s.upserts, s.deletes);
+                    if s.written + s.refused > 0 {
+                        w += &format!("; {} change(s) written, {} refused", s.written, s.refused);
+                    }
+                    w
                 } else {
                     s.error
                 };
@@ -487,4 +820,24 @@ async fn main() -> Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_redirects_query_values_are_decoded() {
+        assert_eq!(query_value("4%2F0Ab-x_y"), "4/0Ab-x_y");
+        assert_eq!(query_value("a+b%"), "a b%");
+        assert_eq!(query_value("%zz"), "%zz");
+    }
+
+    #[test]
+    fn starts_read_as_a_person_reads_them() {
+        let ev = |p: &str| nitya_ical::parse(&format!("BEGIN:VEVENT\r\n{p}\r\nEND:VEVENT\r\n")).find("VEVENT")[0].clone();
+        assert_eq!(start_of(&ev("DTSTART;TZID=Europe/London:20270310T090000")).1, "2027-03-10 09:00 Europe/London");
+        assert_eq!(start_of(&ev("DTSTART:20270310T090000Z")).1, "2027-03-10 09:00Z");
+        assert_eq!(start_of(&ev("DTSTART;VALUE=DATE:20270310")).1, "2027-03-10");
+    }
 }

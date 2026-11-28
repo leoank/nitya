@@ -4,8 +4,9 @@
 # It joins the tailnet as its own identity and serves its API there only; nothing listens
 # on the host's interfaces. Its state (tailnet identity, store, CA and audit keys) is in
 # /var/lib/nitya, readable only by the `nitya` user. The tailnet auth key and the
-# sync-delegate key are passed as systemd credentials: agenix secrets the service user
-# cannot read where they live, copied for the unit while it runs.
+# sync-delegate key are passed as systemd credentials, as is Google's OAuth client: agenix
+# secrets the service user cannot read where they live, copied for the unit while it
+# runs.
 #
 # `nitya-admin` runs the admin commands (enroll-code, devices, revoke) against that state
 # as the `nitya` user, through sudo.
@@ -25,6 +26,7 @@ let
   creds = lib.filter (c: c.file != null) [
     { name = "authkey"; flag = "--authkey-file"; file = cfg.authKeyFile; }
     { name = "delegate-key"; flag = "--delegate-key"; file = cfg.delegateKeyFile; }
+    { name = "google-client"; flag = "--google-client"; file = cfg.googleClientFile; }
   ];
   admin = pkgs.writeShellScriptBin "nitya-admin" ''
     # nitya's admin commands against the server's state, as its user.
@@ -71,6 +73,17 @@ in
       description = ''
         The sync-delegate key, an age identity as `age-keygen` writes it (ADR-0013,
         ADR-0016). Null: the server makes one in its state directory.
+      '';
+    };
+
+    googleClientFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "/run/agenix/nityaGoogleClient";
+      description = ''
+        Google's Desktop OAuth client, its JSON download (ADR-0009, ADR-0018). With it the
+        server syncs Google calendars and nodes sign Google accounts in; the accounts'
+        tokens live in the server's store, sealed under the owner's `tokens` key.
       '';
     };
 

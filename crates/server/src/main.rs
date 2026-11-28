@@ -2,7 +2,7 @@
 //! tailnet (ADR-0011), and the device CA's admin commands.
 //!
 //!   nitya-server --state-dir DIR [--hostname nitya] [--authkey-file FILE] [--port 7300]
-//!                [--ephemeral]                                   serve
+//!                [--ephemeral] [--delegate-key F] [--poll-secs N] [--google-client F]   serve
 //!   nitya-server --state-dir DIR enroll-code --account A [--kind node|app|agent] [--minutes 15]
 //!   nitya-server --state-dir DIR devices
 //!   nitya-server --state-dir DIR revoke SERIAL
@@ -15,6 +15,7 @@ mod audit;
 mod ca;
 mod channels;
 mod devices;
+mod google;
 mod keys;
 mod policy;
 mod sync;
@@ -33,7 +34,7 @@ use nitya_tailnet::{AuthKey, Options, Tailnet};
 /// The port nitya's server listens on, on its tailnet identity.
 pub const PORT: u16 = 7300;
 
-const USAGE: &str = "usage: nitya-server --state-dir DIR [--hostname H] [--authkey-file F] [--port P] [--ephemeral] [--delegate-key F] [--poll-secs N]\n\
+const USAGE: &str = "usage: nitya-server --state-dir DIR [--hostname H] [--authkey-file F] [--port P] [--ephemeral] [--delegate-key F] [--poll-secs N] [--google-client F]\n\
        nitya-server --state-dir DIR enroll-code --account A [--kind node|app|agent] [--minutes M]\n\
        nitya-server --state-dir DIR devices\n\
        nitya-server --state-dir DIR revoke SERIAL";
@@ -44,7 +45,7 @@ state directory. The admin commands work while the server runs.
 
 Usage:
   nitya-server --state-dir DIR [--hostname H] [--authkey-file F] [--port P] [--ephemeral]
-               [--delegate-key F] [--poll-secs N]
+               [--delegate-key F] [--poll-secs N] [--google-client F]
   nitya-server --state-dir DIR enroll-code --account A [--kind node|app|agent] [--minutes M]
   nitya-server --state-dir DIR devices
   nitya-server --state-dir DIR revoke SERIAL
@@ -71,11 +72,13 @@ Options:
                       it); without it the server makes delegate.key in DIR
   --poll-secs N       how often each channel is synced (default 60); `nitya-node sync now`
                       syncs at once
+  --google-client F   Google's Desktop OAuth client, its JSON download (ADR-0009): with
+                      it the server syncs Google calendars and nodes sign accounts in
   --help, --version
 ";
 
 enum Command {
-    Serve { hostname: String, authkey: Option<PathBuf>, port: u16, ephemeral: bool, delegate: Option<PathBuf>, poll: i64 },
+    Serve { hostname: String, authkey: Option<PathBuf>, port: u16, ephemeral: bool, delegate: Option<PathBuf>, poll: i64, google: Option<PathBuf> },
     EnrollCode { account: String, kind: String, minutes: i64 },
     Devices,
     Revoke(u64),
@@ -85,6 +88,7 @@ fn args() -> Result<Option<(PathBuf, Command)>> {
     let mut a = std::env::args().skip(1);
     let (mut dir, mut hostname, mut authkey, mut port, mut ephemeral) = (None, "nitya".to_string(), None, PORT, false);
     let mut delegate = None;
+    let mut google = None;
     let mut poll = 60;
     let (mut account, mut kind, mut minutes) = (None, "node".to_string(), 15);
     let mut sub: Option<String> = None;
@@ -99,6 +103,7 @@ fn args() -> Result<Option<(PathBuf, Command)>> {
             "--ephemeral" => ephemeral = true,
             "--delegate-key" => delegate = Some(PathBuf::from(val()?)),
             "--poll-secs" => poll = val()?.parse().context("--poll-secs")?,
+            "--google-client" => google = Some(PathBuf::from(val()?)),
             "--account" => account = Some(val()?),
             "--kind" => kind = val()?,
             "--minutes" => minutes = val()?.parse().context("--minutes")?,
@@ -114,7 +119,7 @@ fn args() -> Result<Option<(PathBuf, Command)>> {
     }
     let dir = dir.with_context(|| format!("--state-dir is required\n{USAGE}"))?;
     let cmd = match sub.as_deref() {
-        None => Command::Serve { hostname, authkey, port, ephemeral, delegate, poll },
+        None => Command::Serve { hostname, authkey, port, ephemeral, delegate, poll, google },
         Some("enroll-code") => Command::EnrollCode { account: account.context("enroll-code needs --account")?, kind, minutes },
         Some("devices") => Command::Devices,
         _ => Command::Revoke(serial.context("revoke needs a certificate's serial (see `devices`)")?),
@@ -159,7 +164,11 @@ async fn main() -> Result<()> {
             }
             Ok(())
         }
-        Command::Serve { hostname, authkey, port, ephemeral, delegate, poll } => {
+        Command::Serve { hostname, authkey, port, ephemeral, delegate, poll, google } => {
+            let google = match google {
+                Some(p) => Some(Arc::new(google::Google::new(google::OAuthClient::load(&p)?, Arc::new(google::Reqwest(reqwest::Client::new()))))),
+                None => None,
+            };
             let tailnet = Tailnet::start(Options {
                 name: "nitya".into(),
                 dir: dir.join("tailnet"),
@@ -180,14 +189,18 @@ async fn main() -> Result<()> {
             eprintln!("nitya-server: on tailnet as {hostname} ({}), port {port}", tailnet.ips());
             let ca = Arc::new(ca);
             let delegate_key = delegate.public();
-            // No provider drivers yet: they come with phase 2's items 2 to 4.
-            let engine = Arc::new(sync::Engine::new(ca.clone(), Arc::new(delegate), Default::default(), poll));
+            let delegate = Arc::new(delegate);
+            let mut drivers: std::collections::HashMap<String, Arc<dyn sync::Driver>> = Default::default();
+            if let Some(g) = &google {
+                drivers.insert(google::PROVIDER.into(), g.clone());
+            }
+            let engine = Arc::new(sync::Engine::new(ca.clone(), delegate.clone(), drivers, poll));
             engine.clone().spawn();
             tonic::transport::Server::builder()
                 .add_service(DevicesServer::new(devices::Service { ca: ca.clone() }))
                 .add_service(KeysServer::new(keys::Service { ca: ca.clone(), delegate_key, policy: policy.clone() }))
                 .add_service(AuditServer::new(audit::Service { ca: ca.clone(), policy: policy.clone() }))
-                .add_service(ChannelsServer::new(channels::Service { ca, policy, engine }))
+                .add_service(ChannelsServer::new(channels::Service::new(ca, policy, engine, delegate, google)))
                 .serve_with_incoming(tailnet.incoming(port)?)
                 .await
                 .context("serving on the tailnet")

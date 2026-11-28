@@ -1,0 +1,7 @@
+[package]
+name = "nitya-ical"
+description = "nitya's small iCalendar reader and writer (RFC 5545 content lines), for its drivers and nodes"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

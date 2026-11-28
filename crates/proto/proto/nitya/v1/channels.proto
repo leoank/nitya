@@ -1,7 +1,10 @@
-// Channels: the account's provider channels and their sync (ADR-0003, ADR-0017).
+// Channels: the account's provider channels and their sync (ADR-0003, ADR-0017,
+// ADR-0018).
 syntax = "proto3";
 
 package nitya.v1;
+
+import "nitya/v1/keys.proto";
 
 service Channels {
   // The caller's account's channels and where each stands; signed.
@@ -9,6 +12,24 @@ service Channels {
   // Syncs the caller's channels now (one, or all with channel_id 0) and says what each
   // run did; signed.
   rpc SyncNow(SyncNowRequest) returns (SyncNowResponse);
+
+  // Signing a provider account in (ADR-0018): the node runs the browser sign-in with a
+  // loopback redirect and PKCE; the server holds the OAuth client and keeps the tokens.
+  // The sign-in page's URL for the node's redirect, challenge and state; signed.
+  rpc SignIn(SignInRequest) returns (SignInResponse);
+  // Trades the sign-in's code for the account's tokens, kept in memory for a few minutes
+  // under `handle`, and lists the account's calendars; signed.
+  rpc Exchange(ExchangeRequest) returns (ExchangeResponse);
+  // Makes a channel of each chosen calendar, with the tokens sealed under `tokens`;
+  // signed.
+  rpc Add(AddRequest) returns (AddResponse);
+
+  // A channel's items as stored, sealed under its class (a device opens them), and the
+  // changes still waiting for the provider; signed.
+  rpc Items(ItemsRequest) returns (ItemsResponse);
+  // A device's change to one item, checked against what the provider can hold, queued
+  // and written at once; signed.
+  rpc Write(WriteRequest) returns (WriteResponse);
 }
 
 message ListChannelsRequest {}
@@ -41,8 +62,97 @@ message SyncReport {
   uint32 upserts = 4;
   uint32 deletes = 5;
   string error = 6;
+  // Queued changes the provider took, and refused.
+  uint32 written = 7;
+  uint32 refused = 8;
 }
 
 message SyncNowResponse {
   repeated SyncReport reports = 1;
+}
+
+message SignInRequest {
+  string provider = 1;
+  string redirect_uri = 2;
+  string code_challenge = 3;
+  string state = 4;
+}
+
+message SignInResponse {
+  string url = 1;
+}
+
+message ExchangeRequest {
+  string provider = 1;
+  string code = 2;
+  string code_verifier = 3;
+  string redirect_uri = 4;
+}
+
+message CalendarInfo {
+  string id = 1;
+  string summary = 2;
+  bool primary = 3;
+  // owner, writer, reader, freeBusyReader.
+  string role = 4;
+  // The channel already syncing it; 0 when none.
+  int64 channel_id = 5;
+}
+
+message ExchangeResponse {
+  string handle = 1;
+  repeated CalendarInfo calendars = 2;
+}
+
+message AddRequest {
+  string handle = 1;
+  repeated string calendar_ids = 2;
+}
+
+message AddResponse {
+  repeated ChannelInfo channels = 1;
+}
+
+message ItemsRequest {
+  int64 channel_id = 1;
+}
+
+message StoredItem {
+  string provider_id = 1;
+  string etag = 2;
+  // Under the channel's class, bound to "channel:<id>:<provider_id>".
+  SealedItem sealed = 3;
+}
+
+message PendingChange {
+  int64 id = 1;
+  // Empty for a new item.
+  string provider_id = 2;
+  bool delete = 3;
+  // Why the provider refused it; empty while it waits.
+  string error = 4;
+}
+
+message ItemsResponse {
+  string class = 1;
+  repeated StoredItem items = 2;
+  repeated PendingChange pending = 3;
+}
+
+message WriteRequest {
+  int64 channel_id = 1;
+  // Empty for a new item.
+  string provider_id = 2;
+  // The version the device changed.
+  string base_etag = 3;
+  // The item as it should be, sealed under the channel's class and bound to
+  // "channel:<id>:change"; absent to delete it.
+  SealedItem sealed = 4;
+}
+
+message WriteResponse {
+  // written, queued (the channel was busy: the next run writes it), refused.
+  string state = 1;
+  string provider_id = 2;
+  string error = 3;
 }

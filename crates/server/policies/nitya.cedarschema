@@ -23,7 +23,7 @@ namespace Nitya {
   action "keys.read", "keys.write" appliesTo { principal: [Device, Agent], resource: [KeySet] };
   action "plan.approve" appliesTo { principal: [Device, Agent], resource: [Plan] };
   action "audit.read", "audit.checkpoint" appliesTo { principal: [Device, Agent], resource: [AuditLog] };
-  action "channels.read", "channels.sync" appliesTo { principal: [Device, Agent], resource: [Channels] };
+  action "channels.read", "channels.sync", "channels.add" appliesTo { principal: [Device, Agent], resource: [Channels] };
 
   // ADR-0004's grants, each its own action; no read action is a member of another, so
   // no grant implies another.

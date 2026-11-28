@@ -28,9 +28,11 @@ yet, and the experiments named below test what it rests on.
   certificate from the server, bound to its tailnet node id and got with a one-time
   enrollment code (ADR-0011); an X25519 wrap key, to which the account's user key is
   wrapped once an unlocked device approves it by fingerprint (ADR-0005, ADR-0013).
-- **Channel**: one provider account and data class (a Google calendar list, an IMAP
+- **Channel**: one provider account and data class (a Google calendar, an IMAP
   mailbox); a driver, an opaque cursor, a sync stage (ADR-0003), synced every minute
-  while the owner consents to `tokens` and its class (ADR-0017).
+  while the owner consents to `tokens` and its class (ADR-0017). Devices' changes wait
+  in an outbox and are written first; a Google channel is one calendar, signed in from a
+  node (ADR-0018).
 - **Item**: an event (raw iCalendar), a message (raw MIME), a task; provider ids and etags;
   encrypted under its class's data key. The source of truth.
 - **Index**: full text and later vectors over items; derived, versioned by generation,

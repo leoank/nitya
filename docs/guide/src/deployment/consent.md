@@ -1,5 +1,10 @@
 # Consent and refresh tokens
 
+> To connect a Google calendar to nitya, use `nitya-node channels add google`
+> ([Channels and sync](../using/sync.md#connecting-a-google-account)): the server keeps
+> that sign-in in its own store. `nitya-consent` and the agenix tokens on this page serve
+> the token probe of [[EXP-20261123-bhfz49]], and Microsoft until its driver comes.
+
 Each account nitya syncs needs one sign-in in a browser. `nitya-consent` runs that sign-in
 the way a desktop app should (authorization code with PKCE and a loopback redirect,
 RFC 8252) and writes the result as JSON:

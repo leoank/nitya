@@ -270,6 +270,9 @@ mod tests {
         // Nor syncs channels; a device does.
         assert!(!p.decide(&agent("job-1"), "channels.sync", &Resource::Channels { user: "ank".into() }, false).unwrap().allowed);
         assert!(p.decide(&device("ank"), "channels.sync", &Resource::Channels { user: "ank".into() }, false).unwrap().allowed);
+        // Nor signs a provider account in.
+        assert!(!p.decide(&agent("job-1"), "channels.add", &Resource::Channels { user: "ank".into() }, false).unwrap().allowed);
+        assert!(p.decide(&device("ank"), "channels.add", &Resource::Channels { user: "ank".into() }, false).unwrap().allowed);
     }
 
     #[test]

@@ -107,6 +107,19 @@ const MIGRATIONS: &[&str] = &[
         error TEXT
     );
     ",
+    // 5: changes a device made, waiting to be written to the provider (ADR-0018).
+    "
+    CREATE TABLE outbox (
+        id INTEGER PRIMARY KEY,
+        channel_id INTEGER NOT NULL REFERENCES channels(id),
+        provider_id TEXT,
+        base_etag TEXT,
+        sealed BLOB NOT NULL,
+        actor TEXT NOT NULL,
+        created INTEGER NOT NULL,
+        error TEXT
+    );
+    ",
 ];
 
 pub struct Store {
@@ -157,6 +170,22 @@ pub struct Run {
     pub full: bool,
     pub upserts: i64,
     pub deletes: i64,
+    pub error: Option<String>,
+}
+
+/// A change a device made to an item, until the provider has it: `sealed` is the new
+/// item under the channel's class (empty: delete `provider_id`); `provider_id` is `None`
+/// for a new item; `base_etag` is the version the device changed. `error` says why the
+/// provider refused it; a refused change stays until it is replaced or dropped.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Pending {
+    pub id: i64,
+    pub channel_id: i64,
+    pub provider_id: Option<String>,
+    pub base_etag: Option<String>,
+    pub sealed: Vec<u8>,
+    pub actor: String,
+    pub created: i64,
     pub error: Option<String>,
 }
 
@@ -487,6 +516,70 @@ impl Store {
         Ok(())
     }
 
+    /// Queues a device's change to an item. A pending change to the same item is replaced:
+    /// the provider only ever gets the latest.
+    pub fn queue_change(&mut self, p: &Pending) -> Result<i64> {
+        let tx = self.db.transaction()?;
+        if let Some(id) = &p.provider_id {
+            tx.execute("DELETE FROM outbox WHERE channel_id = ?1 AND provider_id = ?2", params![p.channel_id, id])?;
+        }
+        tx.execute(
+            "INSERT INTO outbox (channel_id, provider_id, base_etag, sealed, actor, created) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![p.channel_id, p.provider_id, p.base_etag, p.sealed, p.actor, p.created],
+        )?;
+        let id = tx.last_insert_rowid();
+        tx.commit()?;
+        Ok(id)
+    }
+
+    /// The channel's changes in the order they were made; refused ones too.
+    pub fn pending(&self, channel: i64) -> Result<Vec<Pending>> {
+        let mut q = self.db.prepare("SELECT id, channel_id, provider_id, base_etag, sealed, actor, created, error FROM outbox WHERE channel_id = ?1 ORDER BY id")?;
+        let rows = q
+            .query_map([channel], |r| {
+                Ok(Pending {
+                    id: r.get(0)?,
+                    channel_id: r.get(1)?,
+                    provider_id: r.get(2)?,
+                    base_etag: r.get(3)?,
+                    sealed: r.get(4)?,
+                    actor: r.get(5)?,
+                    created: r.get(6)?,
+                    error: r.get(7)?,
+                })
+            })?
+            .collect::<Result<_, _>>()?;
+        Ok(rows)
+    }
+
+    /// The provider has the change: it leaves the outbox, and the item as the provider now
+    /// holds it is stored, in one transaction.
+    pub fn change_written(&mut self, pending: i64, item: &Item, now: i64) -> Result<()> {
+        let tx = self.db.transaction()?;
+        tx.execute(
+            "INSERT INTO items (channel_id, provider_id, etag, key_version, sealed, updated, deleted) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+             ON CONFLICT (channel_id, provider_id) DO UPDATE SET
+               etag = excluded.etag, key_version = excluded.key_version, sealed = excluded.sealed,
+               updated = excluded.updated, deleted = excluded.deleted",
+            params![item.channel_id, item.provider_id, item.etag, item.key_version, item.sealed, now, item.deleted],
+        )?;
+        tx.execute("DELETE FROM outbox WHERE id = ?1", [pending])?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// The provider refused the change, for `error`; it stays, not retried.
+    pub fn change_refused(&self, pending: i64, error: &str) -> Result<()> {
+        self.db.execute("UPDATE outbox SET error = ?2 WHERE id = ?1", params![pending, error])?;
+        Ok(())
+    }
+
+    /// Drops a change, written or not.
+    pub fn drop_change(&self, pending: i64) -> Result<()> {
+        self.db.execute("DELETE FROM outbox WHERE id = ?1", [pending])?;
+        Ok(())
+    }
+
     pub fn items(&self, channel: i64) -> Result<Vec<Item>> {
         let mut q = self.db.prepare(
             "SELECT id, channel_id, provider_id, etag, key_version, sealed, updated, deleted FROM items WHERE channel_id = ?1 ORDER BY id",
@@ -614,6 +707,34 @@ mod tests {
         s.record_run(&Run { channel_id: ch, started: 1, finished: 2, full: true, upserts: 3, deletes: 1, error: None }).unwrap();
         assert_eq!(s.runs(ch).unwrap().len(), 1);
         assert_eq!(s.all_channels().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn a_change_waits_in_the_outbox_until_written_and_replaces_an_earlier_one() {
+        let (_d, mut s) = store();
+        let ch = s.channel("ank", "google", "calendar", "primary", 0).unwrap();
+        let p = |id: Option<&str>, sealed: &[u8]| Pending {
+            id: 0,
+            channel_id: ch,
+            provider_id: id.map(str::to_string),
+            base_etag: Some("e1".into()),
+            sealed: sealed.to_vec(),
+            actor: "node:k".into(),
+            created: 5,
+            error: None,
+        };
+        s.queue_change(&p(Some("a"), b"v1")).unwrap();
+        let second = s.queue_change(&p(Some("a"), b"v2")).unwrap();
+        let new = s.queue_change(&p(None, b"n")).unwrap();
+        let q = s.pending(ch).unwrap();
+        assert_eq!(q.iter().map(|x| x.sealed.as_slice()).collect::<Vec<_>>(), vec![&b"v2"[..], &b"n"[..]]);
+        s.change_refused(second, "412").unwrap();
+        assert_eq!(s.pending(ch).unwrap()[0].error.as_deref(), Some("412"));
+        s.change_written(new, &Item { channel_id: ch, ..item("n1", b"n") }, 6).unwrap();
+        assert_eq!(s.pending(ch).unwrap().len(), 1);
+        assert_eq!(s.items(ch).unwrap()[0].provider_id, "n1");
+        s.drop_change(second).unwrap();
+        assert!(s.pending(ch).unwrap().is_empty());
     }
 
     #[test]

@@ -33,6 +33,7 @@ let
   full = server {
     authKeyFile = "/run/agenix/ts";
     delegateKeyFile = "/run/agenix/dk";
+    googleClientFile = "/run/agenix/gc";
     hostname = "nitya-test";
     port = 7301;
     pollSeconds = 300;
@@ -69,7 +70,7 @@ let
     test-server-secrets-are-credentials = {
       expr = {
         creds = (svc full).serviceConfig.LoadCredential;
-        cmd = lib.hasSuffix "--hostname nitya-test --port 7301 --poll-secs 300 --authkey-file %d/authkey --delegate-key %d/delegate-key" (exec full);
+        cmd = lib.hasSuffix "--hostname nitya-test --port 7301 --poll-secs 300 --authkey-file %d/authkey --delegate-key %d/delegate-key --google-client %d/google-client" (exec full);
         # The secrets' own paths never reach the command line.
         hidden = !(lib.hasInfix "/run/agenix" (exec full));
       };
@@ -77,6 +78,7 @@ let
         creds = [
           "authkey:/run/agenix/ts"
           "delegate-key:/run/agenix/dk"
+          "google-client:/run/agenix/gc"
         ];
         cmd = true;
         hidden = true;
