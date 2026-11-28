@@ -1,0 +1,171 @@
+{
+ "full": [
+  {
+   "id": "7lhj9dqds26842nbk7oaue8nn0",
+   "status": "confirmed",
+   "summary": "single A",
+   "start": {
+    "dateTime": "2027-03-01T09:00:00Z",
+    "timeZone": "Europe/London"
+   },
+   "iCalUID": "7lhj9dqds26842nbk7oaue8nn0@google.com"
+  },
+  {
+   "id": "6skopg0s4opnj2oi160ddtuis0",
+   "status": "confirmed",
+   "summary": "single B",
+   "start": {
+    "dateTime": "2027-03-02T09:00:00Z",
+    "timeZone": "Europe/London"
+   },
+   "iCalUID": "6skopg0s4opnj2oi160ddtuis0@google.com"
+  },
+  {
+   "id": "cu66ri972skuklb9cd3nv8jf0o",
+   "status": "confirmed",
+   "summary": "weekly S",
+   "start": {
+    "dateTime": "2027-03-03T09:00:00Z",
+    "timeZone": "Europe/London"
+   },
+   "iCalUID": "cu66ri972skuklb9cd3nv8jf0o@google.com",
+   "recurrence": [
+    "RRULE:FREQ=WEEKLY;COUNT=6"
+   ]
+  },
+  {
+   "id": "cu66ri972skuklb9cd3nv8jf0o_20270310T090000Z",
+   "status": "confirmed",
+   "recurringEventId": "cu66ri972skuklb9cd3nv8jf0o",
+   "originalStartTime": {
+    "dateTime": "2027-03-10T09:00:00Z",
+    "timeZone": "Europe/London"
+   },
+   "summary": "weekly S",
+   "start": {
+    "dateTime": "2027-03-11T14:00:00Z",
+    "timeZone": "Europe/London"
+   },
+   "iCalUID": "cu66ri972skuklb9cd3nv8jf0o@google.com"
+  },
+  {
+   "id": "cu66ri972skuklb9cd3nv8jf0o_20270317T090000Z",
+   "status": "cancelled",
+   "recurringEventId": "cu66ri972skuklb9cd3nv8jf0o",
+   "originalStartTime": {
+    "dateTime": "2027-03-17T09:00:00Z",
+    "timeZone": "Europe/London"
+   }
+  }
+ ],
+ "incremental": [
+  {
+   "id": "7lhj9dqds26842nbk7oaue8nn0",
+   "status": "confirmed",
+   "summary": "single A retitled",
+   "start": {
+    "dateTime": "2027-03-01T09:00:00Z",
+    "timeZone": "Europe/London"
+   },
+   "iCalUID": "7lhj9dqds26842nbk7oaue8nn0@google.com"
+  },
+  {
+   "id": "cu66ri972skuklb9cd3nv8jf0o",
+   "status": "confirmed",
+   "summary": "weekly S",
+   "start": {
+    "dateTime": "2027-03-03T09:00:00Z",
+    "timeZone": "Europe/London"
+   },
+   "iCalUID": "cu66ri972skuklb9cd3nv8jf0o@google.com",
+   "recurrence": [
+    "RRULE:FREQ=WEEKLY;COUNT=6"
+   ]
+  },
+  {
+   "id": "cu66ri972skuklb9cd3nv8jf0o_20270310T090000Z",
+   "status": "confirmed",
+   "recurringEventId": "cu66ri972skuklb9cd3nv8jf0o",
+   "originalStartTime": {
+    "dateTime": "2027-03-10T09:00:00Z",
+    "timeZone": "Europe/London"
+   },
+   "summary": "weekly S",
+   "start": {
+    "dateTime": "2027-03-11T14:00:00Z",
+    "timeZone": "Europe/London"
+   },
+   "iCalUID": "cu66ri972skuklb9cd3nv8jf0o@google.com"
+  },
+  {
+   "id": "cu66ri972skuklb9cd3nv8jf0o_20270317T090000Z",
+   "status": "cancelled",
+   "recurringEventId": "cu66ri972skuklb9cd3nv8jf0o",
+   "originalStartTime": {
+    "dateTime": "2027-03-17T09:00:00Z",
+    "timeZone": "Europe/London"
+   }
+  },
+  {
+   "id": "cu66ri972skuklb9cd3nv8jf0o_20270324T090000Z",
+   "status": "confirmed",
+   "recurringEventId": "cu66ri972skuklb9cd3nv8jf0o",
+   "originalStartTime": {
+    "dateTime": "2027-03-24T09:00:00Z",
+    "timeZone": "Europe/London"
+   },
+   "summary": "weekly S",
+   "start": {
+    "dateTime": "2027-03-25T09:00:00Z",
+    "timeZone": "Europe/London"
+   },
+   "iCalUID": "cu66ri972skuklb9cd3nv8jf0o@google.com"
+  },
+  {
+   "id": "cu66ri972skuklb9cd3nv8jf0o_20270331T080000Z",
+   "status": "cancelled",
+   "recurringEventId": "cu66ri972skuklb9cd3nv8jf0o",
+   "originalStartTime": {
+    "dateTime": "2027-03-31T09:00:00+01:00",
+    "timeZone": "Europe/London"
+   }
+  },
+  {
+   "id": "6skopg0s4opnj2oi160ddtuis0",
+   "status": "cancelled"
+  },
+  {
+   "id": "49bfn2rkr2c4eigicna4hvsg1o",
+   "status": "confirmed",
+   "summary": "single C",
+   "start": {
+    "dateTime": "2027-03-04T09:00:00Z",
+    "timeZone": "Europe/London"
+   },
+   "iCalUID": "49bfn2rkr2c4eigicna4hvsg1o@google.com"
+  }
+ ],
+ "incremental_again": [],
+ "garbled": {
+  "error": {
+   "errors": [
+    {
+     "domain": "calendar",
+     "reason": "fullSyncRequired",
+     "message": "Sync token is no longer valid, a full sync is required.",
+     "locationType": "parameter",
+     "location": "syncToken"
+    }
+   ],
+   "code": 410,
+   "message": "Sync token is no longer valid, a full sync is required."
+  }
+ },
+ "if_match": {
+  "update_stale": 412,
+  "delete_stale": 412,
+  "unchanged": true,
+  "update_current": true,
+  "delete_current": true
+ }
+}

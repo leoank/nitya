@@ -96,6 +96,7 @@ rejects a bare link here. Newest last.
 - [[EXP-20261123-bhfz49]] do Google and Microsoft refresh tokens survive 30 days on a headless server; active: the probe is built, waiting on its deploy to ghost001
 - [[EXP-20261123-bhfz7e]] can nitya spawn a saarthi session with a grant and execute its plan only after phone approval; paused until the owner's new saarthi APIs exist
 - [[EXP-20261126-hvzed5]] what does the tailnet tell the server about a caller that a device certificate can bind to; concluded positive (draft): the node id, stable across restarts and new for a fresh join; not the node key or the hostname (ADR-0011)
+- [[EXP-20261127-mqzh92]] do Google's sync tokens, 410 and If-Match carry a two-way driver; concluded positive (draft): every change is listed (a changed instance re-sends its series), 410 asks for a full sync, a stale If-Match is refused with 412
 
 ## Decisions
 Settled in the interview of 2026-11-22/23 ([[AGS-20261123-bhdnxc]]); each record in

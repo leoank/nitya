@@ -1,0 +1,6 @@
+prediction	held	observed
+1 full listing: masters, moved and cancelled instances; token on the last page only	1	items ['cancelled-instance', 'event', 'event', 'event', 'instance']; pages 3; token on pages [False, False, True]
+2 the token lists exactly the five changes; deleted as cancelled; newest token empty	0	8 items: single A retitled/confirmed/event; weekly S/confirmed/event; weekly S/confirmed/instance; -/cancelled/instance; weekly S/confirmed/instance; -/cancelled/instance; -/cancelled/event; single C/confirmed/event; then 0
+3 a garbled token is answered 410	1	status 410
+4 If-Match: stale update and delete 412 and change nothing; current ones succeed	1	{"update_stale": 412, "delete_stale": 412, "unchanged": true, "update_current": true, "delete_current": true}
+5 insert keeps the iCalUID	1	iCalUID kept: True
