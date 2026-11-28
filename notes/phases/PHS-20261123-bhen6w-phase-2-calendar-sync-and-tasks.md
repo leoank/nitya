@@ -22,7 +22,7 @@ One item per piece of work, ticked when it lands; add items as the plan grows an
 done ones. The project page's *Progress* lists this phase on one line.
 
 - [x] 1. Channel engine: drivers, opaque cursors, sync stages, stale-job recovery, polling (ADR-0003, @twenty-crm); ADR-0017: only with consent to `tokens` and the class, every minute, `nitya-node sync now`; no driver yet
-- [ ] 2. Google Calendar driver, two-way, with the contract from [[EXP-20261123-bhfzfs]]
+- [ ] 2. Google Calendar driver, two-way, with the contract from [[EXP-20261123-bhfzfs]]; ADR-0018: signed in from a node, a channel per calendar, `nitya-node events` to change them; sync tokens, 410 and If-Match checked by [[EXP-20261127-mqzh92]]; open until the owner's sign-in on the tailnet
 - [ ] 3. Microsoft Graph calendar driver, two-way
 - [ ] 4. CalDAV driver, two-way
 - [ ] 5. Free/busy across all calendars (needed by polls)
